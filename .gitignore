@@ -23,6 +23,7 @@ private/
 
 # Local databases, exports, and backups
 *.sql
+!database/migrations/*.sql
 *.sql.gz
 *.sqlite
 *.sqlite3
@@ -38,7 +39,9 @@ private/
 
 # Logs, caches, and temporary files
 *.log
-logs/
+storage/logs/*
+!storage/logs/.gitkeep
+/logs/
 cache/
 .cache/
 tmp/
