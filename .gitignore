@@ -1,0 +1,76 @@
+# Environment and local secret configuration
+.env
+.env.*
+!.env.example
+!.env.*.example
+config.local.php
+config/*.local.php
+credentials*.json
+!credentials*.example.json
+secrets/
+private/
+
+# Private keys, certificates, and signing material
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+*.csr
+*.jks
+*.keystore
+
+# Local databases, exports, and backups
+*.sql
+*.sql.gz
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.bak
+*.backup
+*.old
+*.orig
+*.swp
+*.swo
+*~
+
+# Logs, caches, and temporary files
+*.log
+logs/
+cache/
+.cache/
+tmp/
+temp/
+*.tmp
+
+# Dependencies and generated reports
+node_modules/
+vendor/
+composer.phar
+coverage/
+.nyc_output/
+
+# Deployment packages and generated staging folders
+*.zip
+ara-studio-cpanel/
+
+# Browser tests, screenshots, and local QA artifacts
+screenshots/
+test-results/
+playwright-report/
+.playwright/
+browser-artifacts/
+*.har
+
+# Editor and operating-system files
+.vscode/
+.idea/
+.vs/
+*.suo
+*.user
+*.code-workspace
+.DS_Store
+Thumbs.db
+Desktop.ini
