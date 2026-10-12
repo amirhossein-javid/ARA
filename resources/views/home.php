@@ -3,13 +3,30 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="ARA Studio؛ طراحی وب‌سایت، رابط کاربری و هویت بصری با رویکرد مشاوره‌محور.">
+  <meta name="description" content="<?= e($seoSettings['meta_description']) ?>">
+  <meta name="robots" content="<?= e($robotsDirective) ?>">
   <meta name="theme-color" content="#0b0c0e">
-  <title><?= e($siteSettings['brand_name']) ?> | طراحی تجربه‌های دیجیتال متمایز</title>
+  <title><?= e($seoSettings['homepage_title']) ?></title>
+  <link rel="canonical" href="<?= e($seoSettings['canonical_url']) ?>">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="fa_IR">
+  <meta property="og:site_name" content="<?= e($siteSettings['brand_name']) ?>">
+  <meta property="og:title" content="<?= e($seoSettings['og_title']) ?>">
+  <meta property="og:description" content="<?= e($seoSettings['og_description']) ?>">
+  <meta property="og:url" content="<?= e($seoSettings['canonical_url']) ?>">
+  <meta property="og:image" content="<?= e($socialImageUrl) ?>">
+  <meta property="og:image:alt" content="<?= e($siteSettings['brand_name']) ?>">
+  <meta name="twitter:card" content="<?= e($seoSettings['twitter_card']) ?>">
+  <meta name="twitter:title" content="<?= e($seoSettings['twitter_title']) ?>">
+  <meta name="twitter:description" content="<?= e($seoSettings['twitter_description']) ?>">
+  <meta name="twitter:image" content="<?= e($socialImageUrl) ?>">
+  <?php if ($seoSettings['google_verification'] !== ''): ?><meta name="google-site-verification" content="<?= e($seoSettings['google_verification']) ?>"><?php endif; ?>
+  <?php if ($seoSettings['bing_verification'] !== ''): ?><meta name="msvalidate.01" content="<?= e($seoSettings['bing_verification']) ?>"><?php endif; ?>
   <link rel="icon" href="assets/ara-logo.png" type="image/png">
   <link rel="preload" href="assets/fonts/Vazirmatn-wght.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="assets/styles.css">
   <script src="assets/app.js" defer></script>
+  <script type="application/ld+json" nonce="<?= e($cspNonce) ?>"><?= $structuredDataJson ?></script>
 </head>
 <body>
   <a class="skip-link" href="#main">رفتن به محتوای اصلی</a>

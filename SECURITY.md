@@ -1,6 +1,6 @@
 # Security Policy and Backend Baseline
 
-ARA Studio exposes a public landing page with published portfolio records and allow-listed contact settings, a same-origin consultation endpoint, administrator authentication, consultation management, portfolio management, and protected equal-permission administrator lifecycle controls. It includes no public request viewer, role system, notification integration, SEO editor, arbitrary settings editor, or general-purpose CMS.
+ARA Studio exposes a public landing page with published portfolio records, allow-listed contact settings and managed SEO metadata; dynamic `robots.txt` and `sitemap.xml`; a same-origin consultation endpoint; and protected administration for consultations, portfolio, equal-permission accounts, settings, and SEO. It includes no public request viewer, role system, notification integration, arbitrary settings editor, or general-purpose CMS.
 
 ## Reporting a Vulnerability
 
@@ -63,6 +63,10 @@ Phase 4C account and settings mutations are POST-only, same-origin checked, CSRF
 
 Site setting names are a code-level allow list; the UI cannot create keys. Public URLs must use HTTPS, Telegram is restricted to a valid `t.me` profile path, and email/optional phone values are format and length checked. Values are escaped for HTML and validated again before public rendering. The settings table contains public presentation data only and must never be used for credentials or executable configuration.
 
+Phase 4D stores a single allow-listed SEO record rather than arbitrary keys. Canonical URLs must use HTTPS, match the configured website host, and contain no credentials, custom port, query, or fragment. Verification values accept a narrow ASCII token alphabet and are omitted publicly when empty. HTML metadata uses attribute escaping; JSON-LD uses JSON encoding with all HTML-significant characters hex-escaped. Its inline data block receives a per-response CSP nonce, while executable inline scripts remain disallowed.
+
+SEO social images use random filenames and the same content, MIME, size, dimension, path-traversal, and executable-handler protections as portfolio images. Only the built-in logo or a path matching `assets/seo/uploads/<32 lowercase hex>.(jpg|png|webp)` can reach public metadata. Deployment packages exclude runtime SEO images.
+
 ## Portfolio Upload Safety
 
 - Accept only JPEG, PNG, and WebP images whose `getimagesize()` type and `fileinfo` MIME agree.
@@ -106,7 +110,7 @@ The PHP bootstrap and Apache configuration set a baseline that preserves the cur
 - same-origin opener and resource policies;
 - HSTS from PHP only for production HTTPS requests.
 
-`style-src 'unsafe-inline'` is currently retained because the existing motion system writes CSS custom properties to element style declarations. Scripts remain restricted to same-origin external files. Revisit this exception if the motion implementation changes; do not add `unsafe-eval`.
+`style-src 'unsafe-inline'` is currently retained because the existing motion system writes CSS custom properties to element style declarations. Scripts remain restricted to same-origin external files plus the per-response nonce used only by JSON-LD. Apache does not overwrite the PHP-generated CSP, so the nonce remains effective. Revisit the style exception if the motion implementation changes; do not add `unsafe-eval`.
 
 Test security-header changes against navigation, portfolio filters, fonts, images, animations, and form controls before production use.
 
@@ -127,9 +131,9 @@ Before every cPanel upload:
 3. Confirm that all private directories and `.env` remain outside the web root.
 4. Search tracked and packaged files for real credentials and private keys.
 5. Run PHP syntax checks on every PHP file.
-6. Import migrations manually through phpMyAdmin in numeric order and verify the consultation fields, portfolio table, and allow-listed `site_settings` table, indexes, and constraints before opening the dashboard.
+6. Import migrations manually through phpMyAdmin in numeric order and verify consultation, portfolio, site-setting, session-version, and SEO schemas before opening the dashboard.
 7. Run the CLI database check only with an approved test or production configuration.
 8. Verify generic API failure behavior and writable private log, lock, and rate-limit directories.
-9. Verify admin HTTPS enforcement, generic login failures, login rate limits, session expiration, logout CSRF, denial of unauthenticated access, self/last-active protections, password session invalidation, settings validation, escaped stored content, bounded pagination, allow-listed filters, mutation CSRF, image type/size/dimension rejection, draft exclusion, safe replacement/deletion, and destructive confirmations.
+9. Verify admin HTTPS enforcement, denial of unauthenticated access, mutation CSRF, account lifecycle protections, settings and SEO validation, metadata escaping, JSON-LD/CSP behavior, robots/sitemap output, image type/size/dimension rejection, safe replacement/deletion, portfolio draft exclusion, and destructive confirmations.
 10. Confirm no provisioning or rotation JSON remains on the server.
 11. Review the rendered desktop/mobile site and its existing interactions for regressions.

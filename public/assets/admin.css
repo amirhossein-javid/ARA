@@ -164,6 +164,7 @@ input,select,textarea { font: inherit; }
 .admin-row { min-width:0;padding:17px 20px;display:grid;grid-template-columns:minmax(0,1fr) auto 20px;align-items:center;gap:16px;border-bottom:1px solid #272b30;transition:background .18s ease; }
 .admin-row:last-child { border-bottom:0; }.admin-row > div { min-width:0;display:grid;gap:5px; }.admin-row strong { color:#e7e9ec;font-size:12px; }.admin-row strong small { color:#858c95;font-size:9px;font-weight:500; }.admin-row > div > span { overflow:hidden;color:#7e858e;font-size:9px;text-overflow:ellipsis;white-space:nowrap; }
 .account-form-panel,.settings-panel { max-width:920px; }.account-form,.settings-form { padding:24px; }.account-action-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:18px; }.sensitive-confirm { margin-top:4px;padding:14px;border:1px solid #464038;border-radius:11px;background:#181612; }.form-actions { display:flex!important;flex-direction:row;align-items:center;gap:10px!important; }.form-help { margin:0;color:#9299a1;font-size:10px;line-height:1.9; }.danger-zone-card { border-color:#56353a; }.danger-button:disabled { cursor:not-allowed;opacity:.45; }
+.seo-admin-form { display:grid;gap:18px; }.seo-section { overflow:hidden; }.seo-image-preview { padding:14px;border:1px solid #30353c;border-radius:12px;background:#0f1114; }.seo-image-preview img { width:min(100%,520px);max-height:300px;display:block;margin:0 auto 14px;object-fit:contain;border-radius:9px; }.seo-toggle-grid { display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px!important; }.seo-toggle-grid .confirm-check { padding:14px;border:1px solid #343a41;border-radius:10px;background:#101216; }.seo-submit-bar { position:sticky;z-index:4;bottom:14px;padding:13px;display:flex;justify-content:flex-start;gap:10px;border:1px solid #3c4249;border-radius:14px;background:rgba(17,19,24,.94);box-shadow:0 18px 45px rgba(0,0,0,.35);backdrop-filter:blur(14px); }
 
 @media (hover:hover) and (pointer:fine) {
   .nav-item[href]:hover,.request-row:hover,.portfolio-admin-row:hover,.admin-row:hover { background:#1b1e23;color:#fff; }
@@ -204,4 +205,5 @@ input,select,textarea { font: inherit; }
   .panel-heading { padding:16px; }.request-row { padding:14px 16px; }.metadata-grid { grid-template-columns:1fr;padding:16px; }.message-block { margin:0 16px 16px; }
   .portfolio-form { grid-template-columns:1fr;padding:16px; }.form-field-wide { grid-column:auto; }.portfolio-filter { grid-template-columns:1fr; }
   .form-actions { align-items:stretch;flex-direction:column; }.form-actions > * { width:100%; }
+  .seo-toggle-grid { grid-template-columns:1fr; }.seo-submit-bar { flex-direction:column; }.seo-submit-bar > * { width:100%; }
 }

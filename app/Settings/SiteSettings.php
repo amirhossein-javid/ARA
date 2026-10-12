@@ -104,7 +104,9 @@ final class SiteSettings
             && isset($parts['host'])
             && !isset($parts['user'])
             && !isset($parts['pass'])
-            && !isset($parts['port']);
+            && !isset($parts['port'])
+            && !isset($parts['query'])
+            && !isset($parts['fragment']);
     }
 
     private function isTelegramUrl(string $url): bool

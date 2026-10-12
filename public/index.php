@@ -6,12 +6,16 @@ use Ara\Http\Controllers\AdminAuthController;
 use Ara\Http\Controllers\AdminDashboardController;
 use Ara\Http\Controllers\AdminManagementController;
 use Ara\Http\Controllers\AdminPortfolioController;
+use Ara\Http\Controllers\AdminSeoController;
 use Ara\Http\Controllers\ConsultationController;
 use Ara\Database\Connection;
 use Ara\Portfolio\PortfolioRepository;
 use Ara\Portfolio\TemporaryPortfolio;
 use Ara\Portfolio\PortfolioValidator;
 use Ara\Security\Csrf;
+use Ara\Seo\PublicSeo;
+use Ara\Seo\SeoSettings;
+use Ara\Seo\SeoSettingsRepository;
 use Ara\Settings\SiteSettings;
 use Ara\Settings\SiteSettingsRepository;
 
@@ -45,7 +49,7 @@ if ($privatePath === null) {
     exit;
 }
 
-/** @var array{app: array<string, mixed>, database: array<string, mixed>, consultation: array<string, mixed>, auth: array<string, mixed>, portfolio: array<string, mixed>} $container */
+/** @var array{app: array<string, mixed>, database: array<string, mixed>, consultation: array<string, mixed>, auth: array<string, mixed>, portfolio: array<string, mixed>, seo: array<string, mixed>, csp_nonce: string} $container */
 $container = require $privatePath . '/bootstrap/app.php';
 
 $requestPath = parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
@@ -84,6 +88,9 @@ if ($requestPath === '/admin' || str_starts_with($requestPath, '/admin/')) {
     );
     $managementController = new AdminManagementController(
         $container['app'], $container['database'], $container['auth'], $privatePath
+    );
+    $seoController = new AdminSeoController(
+        $container['app'], $container['database'], $container['auth'], $container['seo'], $privatePath, __DIR__
     );
     $requestMethod = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 
@@ -133,6 +140,12 @@ if ($requestPath === '/admin' || str_starts_with($requestPath, '/admin/')) {
     }
     if ($requestPath === '/admin/settings' && $requestMethod === 'POST') {
         $managementController->saveSettings();
+    }
+    if ($requestPath === '/admin/seo' && $requestMethod === 'GET') {
+        $seoController->show();
+    }
+    if ($requestPath === '/admin/seo' && $requestMethod === 'POST') {
+        $seoController->save();
     }
 
     $consultationRoute = [];
@@ -223,6 +236,7 @@ if ($requestPath === '/admin' || str_starts_with($requestPath, '/admin/')) {
         '/admin/admins' => ['GET'],
         '/admin/admins/create' => ['GET', 'POST'],
         '/admin/settings' => ['GET', 'POST'],
+        '/admin/seo' => ['GET', 'POST'],
         default => [],
     };
 
@@ -237,6 +251,9 @@ if ($requestPath === '/admin' || str_starts_with($requestPath, '/admin/')) {
         if (str_starts_with($requestPath, '/admin/admins') || $requestPath === '/admin/settings') {
             $managementController->methodNotAllowed($allowedMethods);
         }
+        if ($requestPath === '/admin/seo') {
+            $seoController->methodNotAllowed($allowedMethods);
+        }
 
         $dashboardController->methodNotAllowed($allowedMethods);
     }
@@ -244,7 +261,7 @@ if ($requestPath === '/admin' || str_starts_with($requestPath, '/admin/')) {
     $dashboardController->notFound();
 }
 
-if (!in_array($requestPath, ['/', '/index.php'], true)) {
+if (!in_array($requestPath, ['/', '/index.php', '/robots.txt', '/sitemap.xml'], true)) {
     http_response_code(404);
     header('Content-Type: text/plain; charset=UTF-8');
     echo 'Not found.';
@@ -265,6 +282,38 @@ $settingsService = new SiteSettings();
 $siteSettings = $settingsService->safePublicValues((new SiteSettingsRepository($publicConnection))->all());
 $siteWebsiteHost = (string) parse_url($siteSettings['website_url'], PHP_URL_HOST);
 $siteTelephoneHref = $settingsService->telephoneHref($siteSettings['contact_phone']);
+$seoService = new SeoSettings();
+$seoSettings = $seoService->safePublicValues(
+    (new SeoSettingsRepository($publicConnection))->get(),
+    $siteSettings['website_url']
+);
+if (!is_file(__DIR__ . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $seoSettings['social_image_path']))) {
+    $seoSettings['social_image_path'] = SeoSettings::DEFAULTS['social_image_path'];
+}
+$publicSeo = new PublicSeo($seoSettings, $siteSettings);
+
+if ($requestPath === '/robots.txt') {
+    header('Content-Type: text/plain; charset=UTF-8');
+    header('Cache-Control: public, max-age=300');
+    echo $publicSeo->robotsText();
+    exit;
+}
+
+if ($requestPath === '/sitemap.xml') {
+    header('Content-Type: application/xml; charset=UTF-8');
+    header('Cache-Control: public, max-age=300');
+    header('X-Robots-Tag: noindex');
+    echo $publicSeo->sitemapXml();
+    exit;
+}
+
+$robotsDirective = $publicSeo->robotsDirective();
+$socialImageUrl = $publicSeo->socialImageUrl();
+$structuredDataJson = json_encode(
+    $publicSeo->structuredData($siteTelephoneHref),
+    JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_THROW_ON_ERROR
+);
+$cspNonce = $container['csp_nonce'];
 $publicPortfolio = new PortfolioRepository($publicConnection);
 $portfolioIsTemporary = !$publicPortfolio->hasAny();
 $portfolioProjects = $portfolioIsTemporary ? [] : $publicPortfolio->published();

@@ -6,7 +6,7 @@ namespace Ara\Http;
 
 final class SecurityHeaders
 {
-    public static function send(string $environment): void
+    public static function send(string $environment, string $scriptNonce): void
     {
         if (headers_sent()) {
             return;
@@ -23,7 +23,7 @@ final class SecurityHeaders
             "Content-Security-Policy: default-src 'self'; "
             . "base-uri 'self'; object-src 'none'; frame-ancestors 'self'; "
             . "form-action 'self'; img-src 'self' data:; font-src 'self'; "
-            . "style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'"
+            . "style-src 'self' 'unsafe-inline'; script-src 'self' 'nonce-" . $scriptNonce . "'; connect-src 'self'"
         );
 
         if ($environment === 'production' && self::isHttps()) {

@@ -50,6 +50,9 @@ storage/provision/*
 public/assets/portfolio/uploads/*
 !public/assets/portfolio/uploads/.gitkeep
 !public/assets/portfolio/uploads/.htaccess
+public/assets/seo/uploads/*
+!public/assets/seo/uploads/.gitkeep
+!public/assets/seo/uploads/.htaccess
 /logs/
 cache/
 .cache/

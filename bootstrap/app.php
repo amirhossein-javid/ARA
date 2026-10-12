@@ -35,6 +35,7 @@ $database = require ARA_BASE_PATH . '/config/database.php';
 $consultation = require ARA_BASE_PATH . '/config/consultation.php';
 $auth = require ARA_BASE_PATH . '/config/auth.php';
 $portfolio = require ARA_BASE_PATH . '/config/portfolio.php';
+$seo = require ARA_BASE_PATH . '/config/seo.php';
 
 if (!in_array($app['environment'], ['local', 'development', 'testing', 'production'], true)) {
     throw new \RuntimeException('APP_ENV has an unsupported value.');
@@ -62,7 +63,8 @@ if (strlen($app['key']) < 32 || str_starts_with($app['key'], 'replace_')) {
 
 date_default_timezone_set($app['timezone']);
 ErrorHandler::register($app['environment'], $logFile, $app['debug']);
-SecurityHeaders::send($app['environment']);
+$cspNonce = base64_encode(random_bytes(18));
+SecurityHeaders::send($app['environment'], $cspNonce);
 Connection::validateConfig($database);
 
 return [
@@ -71,4 +73,6 @@ return [
     'consultation' => $consultation,
     'auth' => $auth,
     'portfolio' => $portfolio,
+    'seo' => $seo,
+    'csp_nonce' => $cspNonce,
 ];
