@@ -41,6 +41,10 @@ private/
 *.log
 storage/logs/*
 !storage/logs/.gitkeep
+storage/rate-limits/*
+!storage/rate-limits/.gitkeep
+storage/locks/*
+!storage/locks/.gitkeep
 /logs/
 cache/
 .cache/

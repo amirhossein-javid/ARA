@@ -32,6 +32,7 @@ Environment::load(ARA_BASE_PATH . '/.env');
 
 $app = require ARA_BASE_PATH . '/config/app.php';
 $database = require ARA_BASE_PATH . '/config/database.php';
+$consultation = require ARA_BASE_PATH . '/config/consultation.php';
 
 if (!in_array($app['environment'], ['local', 'development', 'testing', 'production'], true)) {
     throw new \RuntimeException('APP_ENV has an unsupported value.');
@@ -53,6 +54,10 @@ if ($app['environment'] === 'production' && $app['debug']) {
     throw new \RuntimeException('APP_DEBUG must be disabled in production.');
 }
 
+if (strlen($app['key']) < 32 || str_starts_with($app['key'], 'replace_')) {
+    throw new \RuntimeException('APP_KEY must be replaced with a private value of at least 32 characters.');
+}
+
 date_default_timezone_set($app['timezone']);
 ErrorHandler::register($app['environment'], $logFile, $app['debug']);
 SecurityHeaders::send($app['environment']);
@@ -61,4 +66,5 @@ Connection::validateConfig($database);
 return [
     'app' => $app,
     'database' => $database,
+    'consultation' => $consultation,
 ];

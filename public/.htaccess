@@ -1,6 +1,13 @@
 Options -Indexes
 DirectoryIndex index.php
 
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [L,QSA]
+</IfModule>
+
 <IfModule mod_headers.c>
     Header onsuccess unset X-Powered-By
     Header onsuccess unset X-Content-Type-Options

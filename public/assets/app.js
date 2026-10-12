@@ -164,18 +164,72 @@ if (parallaxStage && finePointerQuery.matches && !reduceMotionQuery.matches) {
 }
 
 const form = document.querySelector('[data-consultation-form]');
-form?.addEventListener('submit', event => {
+form?.addEventListener('submit', async event => {
   event.preventDefault();
+  if (!form.reportValidity()) return;
+
   const data = new FormData(form);
-  const status = document.querySelector('[data-form-status]');
-  const name = String(data.get('name') || '').trim();
-  const contact = String(data.get('contact') || '').trim();
-  const message = String(data.get('message') || '').trim();
-  if (!name || !contact || !message) {
-    status.textContent = 'لطفاً همه فیلدهای ضروری را تکمیل کنید.';
-    return;
+  const status = form.querySelector('[data-form-status]');
+  const submitButton = form.querySelector('[data-submit-button]');
+  const csrfToken = form.querySelector('[data-csrf-token]')?.value || '';
+  const payload = {
+    name: String(data.get('name') || '').trim(),
+    contact: String(data.get('contact') || '').trim(),
+    service: String(data.get('service') || '').trim(),
+    message: String(data.get('message') || '').trim(),
+    website: String(data.get('website') || '').trim()
+  };
+  const originalButtonContent = submitButton?.innerHTML;
+
+  if (status) {
+    status.dataset.state = 'loading';
+    status.textContent = 'در حال ثبت درخواست…';
   }
-  status.textContent = 'فرم در همین مرورگر بررسی شد؛ هنوز هیچ داده‌ای ارسال یا ذخیره نشده است.';
+  form.setAttribute('aria-busy', 'true');
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = 'در حال ارسال…';
+  }
+
+  try {
+    const response = await fetch(form.action, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken
+      },
+      body: JSON.stringify(payload)
+    });
+    const result = await response.json().catch(() => null);
+
+    if (!response.ok || result?.ok !== true) {
+      const firstError = result?.errors && Object.values(result.errors)[0];
+      const submissionError = new Error(firstError || result?.message || 'ثبت درخواست انجام نشد. لطفاً دوباره تلاش کنید.');
+      submissionError.name = 'ConsultationSubmissionError';
+      throw submissionError;
+    }
+
+    form.reset();
+    if (status) {
+      status.dataset.state = 'success';
+      status.textContent = result.message || 'درخواست مشاوره با موفقیت ثبت شد.';
+    }
+  } catch (error) {
+    if (status) {
+      status.dataset.state = 'error';
+      status.textContent = error instanceof Error && error.name === 'ConsultationSubmissionError'
+        ? error.message
+        : 'ارتباط با سرور برقرار نشد. اطلاعات فرم حفظ شده است؛ دوباره تلاش کنید.';
+    }
+  } finally {
+    form.removeAttribute('aria-busy');
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.innerHTML = originalButtonContent || 'ارسال درخواست مشاوره';
+    }
+  }
 });
 
 const year = document.querySelector('[data-year]');

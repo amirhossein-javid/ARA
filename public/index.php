@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use Ara\Http\Controllers\ConsultationController;
+use Ara\Security\Csrf;
+
 error_reporting(E_ALL);
 ini_set('display_errors', '0');
 ini_set('display_startup_errors', '0');
@@ -32,7 +35,38 @@ if ($privatePath === null) {
     exit;
 }
 
-/** @var array{app: array<string, mixed>, database: array<string, mixed>} $container */
+/** @var array{app: array<string, mixed>, database: array<string, mixed>, consultation: array<string, mixed>} $container */
 $container = require $privatePath . '/bootstrap/app.php';
+
+$requestPath = parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
+$requestPath = is_string($requestPath) ? rtrim($requestPath, '/') : '/';
+$requestPath = $requestPath === '' ? '/' : $requestPath;
+
+if ($requestPath === '/api/consultation') {
+    (new ConsultationController(
+        $container['app'],
+        $container['database'],
+        $container['consultation'],
+        $privatePath . '/storage'
+    ))->handle();
+}
+
+if (!in_array($requestPath, ['/', '/index.php'], true)) {
+    http_response_code(404);
+    header('Content-Type: text/plain; charset=UTF-8');
+    echo 'Not found.';
+    exit;
+}
+
+if (!in_array(strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')), ['GET', 'HEAD'], true)) {
+    http_response_code(405);
+    header('Allow: GET, HEAD');
+    header('Content-Type: text/plain; charset=UTF-8');
+    echo 'Method not allowed.';
+    exit;
+}
+
+$csrfToken = Csrf::token();
+header('Cache-Control: no-store');
 
 require $privatePath . '/resources/views/home.php';

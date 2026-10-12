@@ -1,6 +1,6 @@
 # Security Policy and Backend Baseline
 
-ARA Studio currently exposes one read-only PHP page backed by static frontend assets. Phase 1 provides reusable security infrastructure but intentionally includes no form submission endpoint, admin panel, authentication, notification integration, or CMS.
+ARA Studio exposes a public landing page and a same-origin consultation submission endpoint. Phase 2 adds validation and MySQL persistence but intentionally includes no admin panel, authentication, notification integration, or CMS.
 
 ## Reporting a Vulnerability
 
@@ -23,6 +23,7 @@ The production archive must never contain:
 - Real values are loaded from the private `.env` file or server environment variables.
 - `.env` variants are ignored by Git; only example templates may be versioned.
 - Production refuses `APP_DEBUG=true`.
+- `APP_KEY` must be a private random value of at least 32 characters and must not be reused as another credential.
 - Secret values must not be included in public responses, frontend JavaScript, repository history, or deployment ZIP files.
 - Rotate any credential immediately if it is accidentally disclosed, then remove it from history through an approved incident process.
 
@@ -48,9 +49,11 @@ Future endpoints must treat every request value as untrusted, including headers,
 
 Browser validation is a usability feature, not a security boundary.
 
-## Sessions and CSRF for Future Authentication
+## Sessions and CSRF
 
-No session is started in Phase 1. Before adding authenticated administration:
+The consultation form uses a server-side session token, a `SameSite=Lax`, `HttpOnly` cookie, and constant-time CSRF comparison. Origin and Referer are checked against `APP_URL` when present, but the CSRF token remains the primary control. The API does not accept cross-origin credentials or alternate content types.
+
+Before adding authenticated administration:
 
 - require HTTPS and set cookies with `Secure`, `HttpOnly`, and an appropriate `SameSite` value;
 - enable strict session mode, use cookies only, and reject session IDs in URLs;
@@ -90,18 +93,13 @@ The PHP bootstrap and Apache configuration set a baseline that preserves the cur
 
 Test security-header changes against navigation, portfolio filters, fonts, images, animations, and form controls before production use.
 
-## Consultation Form Requirements for the Next Phase
+## Consultation Submission Controls
 
-Before enabling server-side submission:
+The endpoint accepts only a bounded JSON object with an exact field allow list. Server-side validation enforces field types, lengths, UTF-8, contact format, and service values. A visually hidden honeypot rejects basic automation. File-backed rate-limit records and duplicate locks contain only keyed hashes, counters, and timestamps; raw IP addresses and form values are not written to those files.
 
-1. Define a minimal data model and retention/deletion policy.
-2. Validate every field on the server and normalize Persian/English input intentionally.
-3. Decide whether anonymous submission needs a CSRF token based on the final cookie/session design; CSRF protection is mandatory for authenticated actions.
-4. Add rate limiting and a privacy-conscious spam defense.
-5. Use prepared SQL statements inside explicit failure handling.
-6. Prevent email header injection and use an allow-listed server-side recipient if email is later approved.
-7. Keep SMTP, Telegram, and API credentials private and out of Git.
-8. Return generic client errors and never reveal provider or SQL responses.
+Rate-limit and duplicate files use `flock` for concurrent request safety. Keyed identities are distributed across a fixed maximum of 256 lock/state shards; expired rate-limit entries are removed while a shard is locked, and each shard has a defensive entry cap. The duplicate check compares validated values only inside a bounded ten-minute database window and executes under a keyed filesystem lock. All inserts and duplicate checks use native PDO prepared statements.
+
+Define and document a retention/deletion policy before real consultation data is collected. Keep SMTP, Telegram, and other delivery integrations disabled until separately reviewed.
 
 ## Pre-Deployment Review
 
@@ -112,6 +110,7 @@ Before every cPanel upload:
 3. Confirm that all private directories and `.env` remain outside the web root.
 4. Search tracked and packaged files for real credentials and private keys.
 5. Run PHP syntax checks on every PHP file.
-6. Run the CLI database check only with an approved test or production configuration.
-7. Verify generic failure behavior and private log permissions.
-8. Review the rendered desktop/mobile site and its existing interactions for regressions.
+6. Import migrations manually through phpMyAdmin and verify the table before enabling the form.
+7. Run the CLI database check only with an approved test or production configuration.
+8. Verify generic API failure behavior and writable private log, lock, and rate-limit directories.
+9. Review the rendered desktop/mobile site and its existing interactions for regressions.

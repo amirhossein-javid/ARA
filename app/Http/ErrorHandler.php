@@ -65,6 +65,23 @@ final class ErrorHandler
             exit(1);
         }
 
+        if (self::isApiRequest()) {
+            if (!headers_sent()) {
+                http_response_code(500);
+                header('Content-Type: application/json; charset=UTF-8');
+                header('Cache-Control: no-store');
+            }
+
+            echo json_encode([
+                'ok' => false,
+                'code' => 'server_error',
+                'message' => 'خطایی در ثبت درخواست رخ داد. لطفاً دوباره تلاش کنید.',
+                'request_id' => $requestId,
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            self::$handling = false;
+            return;
+        }
+
         if (!headers_sent()) {
             http_response_code(500);
             header('Content-Type: text/html; charset=UTF-8');
@@ -149,5 +166,12 @@ final class ErrorHandler
         } catch (Throwable) {
             return substr(hash('sha256', uniqid('', true)), 0, 16);
         }
+    }
+
+    private static function isApiRequest(): bool
+    {
+        $path = parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
+
+        return is_string($path) && str_starts_with($path, '/api/');
     }
 }
