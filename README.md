@@ -250,3 +250,5 @@ Production must use `APP_ENV=production` and `APP_DEBUG=false`. Configure log ro
 The recommended next phase should be deliberately selected, such as approved notification delivery or operational reporting. Every future admin action must reuse the existing authentication, no-cache, validation, escaping, prepared-query, upload, and CSRF boundaries.
 
 See [SECURITY.md](SECURITY.md) before adding any public endpoint or authenticated feature.
+
+For the exact fresh-install, update, rollback, permission, provisioning, and runtime smoke-test procedure, follow [DEPLOYMENT.md](DEPLOYMENT.md).
