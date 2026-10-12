@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Ara\Http\Controllers\AdminAuthController;
 use Ara\Http\Controllers\ConsultationController;
 use Ara\Security\Csrf;
 
@@ -35,7 +36,7 @@ if ($privatePath === null) {
     exit;
 }
 
-/** @var array{app: array<string, mixed>, database: array<string, mixed>, consultation: array<string, mixed>} $container */
+/** @var array{app: array<string, mixed>, database: array<string, mixed>, consultation: array<string, mixed>, auth: array<string, mixed>} $container */
 $container = require $privatePath . '/bootstrap/app.php';
 
 $requestPath = parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
@@ -49,6 +50,43 @@ if ($requestPath === '/api/consultation') {
         $container['consultation'],
         $privatePath . '/storage'
     ))->handle();
+}
+
+if ($requestPath === '/admin' || str_starts_with($requestPath, '/admin/')) {
+    $adminController = new AdminAuthController(
+        $container['app'],
+        $container['database'],
+        $container['auth'],
+        $privatePath
+    );
+    $requestMethod = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+
+    if ($requestPath === '/admin/login' && $requestMethod === 'GET') {
+        $adminController->showLogin();
+    }
+
+    if ($requestPath === '/admin/login' && $requestMethod === 'POST') {
+        $adminController->login();
+    }
+
+    if ($requestPath === '/admin/logout' && $requestMethod === 'POST') {
+        $adminController->logout();
+    }
+
+    if ($requestPath === '/admin' && $requestMethod === 'GET') {
+        $adminController->dashboard();
+    }
+
+    $allowedMethods = match ($requestPath) {
+        '/admin/login' => ['GET', 'POST'],
+        '/admin/logout' => ['POST'],
+        '/admin' => ['GET'],
+        default => [],
+    };
+
+    if ($allowedMethods !== []) {
+        $adminController->methodNotAllowed($allowedMethods);
+    }
 }
 
 if (!in_array($requestPath, ['/', '/index.php'], true)) {

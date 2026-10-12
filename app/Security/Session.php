@@ -27,7 +27,7 @@ final class Session
             'lifetime' => 0,
             'path' => '/',
             'domain' => '',
-            'secure' => self::isHttps(),
+            'secure' => self::isSecureRequest(),
             'httponly' => true,
             'samesite' => 'Lax',
         ]);
@@ -37,7 +37,7 @@ final class Session
         }
     }
 
-    private static function isHttps(): bool
+    public static function isSecureRequest(): bool
     {
         $https = strtolower((string) ($_SERVER['HTTPS'] ?? ''));
         $forwardedProto = strtolower(trim(explode(',', (string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''))[0]));

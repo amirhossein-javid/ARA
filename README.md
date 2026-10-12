@@ -1,6 +1,6 @@
 # ARA Studio Website
 
-ARA Studio is a Persian, right-to-left agency website with a lightweight PHP 8.2+ backend. The existing HTML, CSS, Vanilla JavaScript, Vazirmatn font, motion, portfolio filters, and navigation are preserved. Phase 2 adds a same-origin consultation submission API and MySQL persistence; it does not add an admin panel, authentication, notifications, or a CMS.
+ARA Studio is a Persian, right-to-left agency website with a lightweight PHP 8.2+ backend. The existing public interface remains unchanged. Phase 2 provides consultation persistence, and Phase 3 adds secure authentication for exactly two equal-permission administrators. No dashboard features, notifications, role management, or CMS are included yet.
 
 ## Requirements
 
@@ -16,16 +16,19 @@ Docker and other container tooling are not part of this project. A cPanel deploy
 
 ```text
 app/
+  Auth/                       Admin repository, authentication, and session state
   Consultation/               Validation, duplicate guard, and PDO repository
   Config/Environment.php       Minimal environment-file loader
   Database/Connection.php      Reusable PDO connection factory
-  Http/Controllers/            Consultation API request handling
+  Http/Controllers/            Consultation and admin request handling
   Http/                        JSON request/response and centralized safe errors
   Http/SecurityHeaders.php     Application-level response headers
   Security/                    Session CSRF, same-origin, and file rate limiting
   Support/helpers.php          Context-aware HTML escaping helper
 bin/
   database-check.php           Private CLI-only database connectivity check
+  provision-admins.php         Private one-time two-account provisioning
+  rotate-admin-password.php    Private credential rotation
 bootstrap/app.php              Autoloading, configuration, validation, and startup
 config/
   app.php                      Application environment configuration
@@ -36,9 +39,11 @@ public/
   .htaccess                    Apache hardening and directory settings
   assets/                      Existing frontend assets
 resources/views/home.php       Existing landing-page markup
+resources/views/admin/         Admin login and authenticated confirmation views
 storage/logs/                  Private runtime logs; log files are ignored
 storage/locks/                 Private duplicate-submission locks
 storage/rate-limits/           Private concurrent rate-limit state
+storage/provision/             Temporary private provisioning input
 ```
 
 The homepage does not connect to MySQL. A connection is created only for a consultation API request or the private CLI connectivity check.
@@ -90,15 +95,15 @@ Do not place `.env` in `public/` or `public_html`, and do not add real credentia
 - `utf8mb4` in the DSN;
 - non-persistent connections.
 
-`database/migrations/0000_database_foundation.sql` establishes the connection conventions. `database/migrations/0001_create_consultation_requests.sql` creates the Phase 2 table with the existing form fields, a `new` status, UTC application timestamps, and indexes for status and recent-request checks.
+`database/migrations/0000_database_foundation.sql` establishes the connection conventions. `0001_create_consultation_requests.sql` creates the Phase 2 consultation table. `0002_create_admins.sql` creates the two-account authentication table without roles or personal profile fields.
 
 For cPanel initialization:
 
 1. Create a database and a dedicated database user in **MySQL Databases**.
 2. Grant that user only the privileges needed by the current phase and future approved migrations.
 3. Create the private `.env` file with the cPanel-prefixed database and user names.
-4. Open phpMyAdmin, select the application database, choose **Import**, and import `0000_database_foundation.sql` followed by `0001_create_consultation_requests.sql`.
-5. Confirm that `consultation_requests` exists and that its collation is `utf8mb4_unicode_ci`. Never import migrations automatically from a web request or deployment script.
+4. Open phpMyAdmin, select the application database, choose **Import**, and import `0000_database_foundation.sql`, `0001_create_consultation_requests.sql`, and `0002_create_admins.sql` in that order.
+5. Confirm that `consultation_requests` and `admins` exist. Never import migrations automatically from a web request or deployment script.
 6. If cPanel Terminal is available, run `php bin/database-check.php` from the private application directory. A successful command is the only acceptable evidence of real connectivity.
 
 ## Consultation API
@@ -106,6 +111,58 @@ For cPanel initialization:
 `POST /api/consultation` accepts JSON only, with a maximum body size of 8 KiB. The fields are `name`, `contact`, `service`, `message`, and the empty `website` honeypot. The endpoint applies strict allow-list validation, a session-backed CSRF token, Origin/Referer checks when those headers are present, a keyed per-address file rate limit, and a ten-minute duplicate window.
 
 Successful persistence returns HTTP `201`. Validation, CSRF, duplicate, media-type, request-size, method, and rate-limit failures use appropriate `4xx` responses. Unexpected failures return generic JSON and are logged privately without request bodies or form values.
+
+## Administrator Authentication
+
+The administrator routes are:
+
+- `GET /admin/login` and `POST /admin/login`;
+- protected `GET /admin`;
+- `POST /admin/logout`.
+
+Both accounts have identical permissions because the schema has no role column. Production admin routes require HTTPS. Login and logout use CSRF tokens, same-origin checks, fixed redirects, private no-store responses, prepared SQL, generic credential errors, keyed file rate limits, session-ID regeneration, and server-side expiration. The idle timeout is 30 minutes and the absolute timeout is 8 hours.
+
+### One-time provisioning without SSH
+
+Provisioning is private and CLI-only; there is no registration or browser setup endpoint.
+
+1. Import `0002_create_admins.sql` through phpMyAdmin.
+2. In cPanel File Manager, create `/home/ACCOUNT/ara-studio/storage/provision/admins.json` outside `public_html` with exactly this structure and two unique lowercase usernames:
+
+   ```json
+   {
+     "admins": [
+       {"username": "replace_admin_one", "password": "replace-with-a-long-unique-password"},
+       {"username": "replace_admin_two", "password": "replace-with-another-long-unique-password"}
+     ]
+   }
+   ```
+
+3. Set the file permission to `0600`.
+4. In cPanel **Cron Jobs**, temporarily schedule this command using the PHP 8.2+ CLI path supplied by the host:
+
+   ```text
+   /usr/local/bin/php -q /home/ACCOUNT/ara-studio/bin/provision-admins.php
+   ```
+
+5. Let it run once, review the generic success result, and immediately remove the cron job. The script refuses to run when any administrator already exists, creates exactly two accounts in one transaction, hashes passwords with `password_hash()`, and clears/deletes `admins.json` after success.
+6. If the script reports exit code `2`, the accounts were created but cPanel prevented automatic deletion; immediately delete the emptied provisioning file manually.
+
+Never place provisioning JSON in Git, the deployment ZIP, `public_html`, a cron command, or cron email output.
+
+### Password rotation
+
+Create private `storage/provision/password-rotation.json` with permission `0600`:
+
+```json
+{
+  "username": "replace_admin_username",
+  "current_password": "replace-current-password",
+  "new_password": "replace-new-long-unique-password"
+}
+```
+
+Run `/usr/local/bin/php -q /home/ACCOUNT/ara-studio/bin/rotate-admin-password.php` once through a temporary cPanel Cron Job, then remove the job. Rotation requires the active account's current password, uses `password_verify()` and `password_hash()`, and deletes the private input after success. Existing sessions for that account are rejected on their next protected request.
 
 ## Secure cPanel Layout
 
@@ -136,9 +193,9 @@ Recommended deployment workflow:
 2. Exclude `.git`, `.env`, logs, database exports, tests, editor files, local artifacts, and previous ZIP files.
 3. Upload and extract the archive in the account home directory, not inside `public_html` as a single repository tree.
 4. Create `.env` manually in `/home/ACCOUNT/ara-studio/` after extraction. Do not place secrets in the archive.
-5. Set private directories to restrictive permissions supported by the host (typically directories `750`, files `640`) and keep `storage/logs`, `storage/locks`, and `storage/rate-limits` writable by PHP.
+5. Set private directories to restrictive permissions supported by the host (typically directories `750`, files `640`) and keep `storage/logs`, `storage/locks`, and `storage/rate-limits` writable by PHP. Provisioning JSON must use `0600`.
 6. Select PHP 8.2+ and enable `pdo_mysql` in **MultiPHP Manager** or **Select PHP Version**.
-7. Confirm HTTPS, response headers, the homepage, navigation, filters, animations, and consultation UI before changing DNS or production traffic.
+7. Confirm HTTPS, response headers, the homepage, consultation flow, admin login/logout, expiration behavior, and unauthenticated redirects before changing DNS or production traffic.
 
 Do not upload the repository root directly to `public_html`.
 
@@ -150,6 +207,6 @@ Production must use `APP_ENV=production` and `APP_DEBUG=false`. Configure log ro
 
 ## Next Phase
 
-The recommended next phase is a protected administrative workflow for reviewing and updating consultation status. Authentication, authorization, session expiration, audit events, and CSRF protection must be designed before exposing any administrative route. Email or Telegram delivery should be added only after the stored submission flow is verified on hosting and provider secrets management is approved.
+The recommended next phase is a minimal dashboard for reviewing consultation requests and updating their status. Every future admin action must reuse the existing authentication and CSRF boundary. Email or Telegram delivery should be added only after the stored submission flow is verified on hosting and provider secrets management is approved.
 
 See [SECURITY.md](SECURITY.md) before adding any public endpoint or authenticated feature.

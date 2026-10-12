@@ -1,6 +1,6 @@
 # Security Policy and Backend Baseline
 
-ARA Studio exposes a public landing page and a same-origin consultation submission endpoint. Phase 2 adds validation and MySQL persistence but intentionally includes no admin panel, authentication, notification integration, or CMS.
+ARA Studio exposes a public landing page, a same-origin consultation endpoint, and Phase 3 administrator authentication. The protected area currently confirms authentication only; it includes no consultation dashboard, roles, notification integration, or CMS.
 
 ## Reporting a Vulnerability
 
@@ -51,17 +51,15 @@ Browser validation is a usability feature, not a security boundary.
 
 ## Sessions and CSRF
 
-The consultation form uses a server-side session token, a `SameSite=Lax`, `HttpOnly` cookie, and constant-time CSRF comparison. Origin and Referer are checked against `APP_URL` when present, but the CSRF token remains the primary control. The API does not accept cross-origin credentials or alternate content types.
+The public form and administrator actions use a server-side token with constant-time CSRF comparison. Sessions use strict cookie-only mode with `HttpOnly` and `SameSite=Lax`; production administrator routes refuse non-HTTPS requests so their cookies are always `Secure`. Session IDs regenerate after login and logout. Authenticated sessions expire after 30 minutes idle or 8 hours absolute time.
 
-Before adding authenticated administration:
+Origin and Referer are checked against `APP_URL` when present, but the CSRF token remains the primary control. Login errors do not disclose whether an account exists. Authentication checks the database on every protected page so inactive accounts lose access on their next request.
 
-- require HTTPS and set cookies with `Secure`, `HttpOnly`, and an appropriate `SameSite` value;
-- enable strict session mode, use cookies only, and reject session IDs in URLs;
-- regenerate the session ID after login and privilege changes;
-- enforce idle and absolute expirations;
-- store a cryptographically random CSRF token in the session and verify it with `hash_equals` on every state-changing request;
-- validate the request origin as additional defense, not as a replacement for CSRF tokens;
-- protect login and recovery flows with rate limits and audit events that do not contain passwords or tokens.
+## Administrator Provisioning
+
+There is no public registration, setup, password-reset, or recovery endpoint. The two equal-permission accounts are created by a private CLI-only script using a temporary `0600` JSON file outside the web root. Provisioning refuses any non-empty `admins` table, requires exactly two distinct accounts, uses `password_hash(PASSWORD_DEFAULT)`, and deletes the temporary plaintext input after success.
+
+Password rotation is also CLI-only, requires the current password, verifies it with `password_verify()`, and replaces it with a new `password_hash()` result. The password-hash fingerprint stored in each authenticated session causes existing sessions for that administrator to be rejected on their next protected request after rotation. Provisioning and rotation inputs must never be committed, packaged, placed in `public_html`, or included directly in cron commands.
 
 ## Errors and Logging
 
@@ -113,4 +111,6 @@ Before every cPanel upload:
 6. Import migrations manually through phpMyAdmin and verify the table before enabling the form.
 7. Run the CLI database check only with an approved test or production configuration.
 8. Verify generic API failure behavior and writable private log, lock, and rate-limit directories.
-9. Review the rendered desktop/mobile site and its existing interactions for regressions.
+9. Verify admin HTTPS enforcement, generic login failures, login rate limits, session expiration, logout CSRF, and denial of unauthenticated access.
+10. Confirm no provisioning or rotation JSON remains on the server.
+11. Review the rendered desktop/mobile site and its existing interactions for regressions.

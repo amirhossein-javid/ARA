@@ -6,7 +6,7 @@ namespace Ara\Security;
 
 final class Csrf
 {
-    private const SESSION_KEY = 'consultation_csrf_token';
+    private const SESSION_KEY = 'csrf_token';
 
     public static function token(): string
     {
@@ -28,5 +28,14 @@ final class Csrf
         return is_string($providedToken)
             && strlen($providedToken) === 64
             && hash_equals($expectedToken, $providedToken);
+    }
+
+    public static function rotate(): string
+    {
+        Session::start();
+        $token = bin2hex(random_bytes(32));
+        $_SESSION[self::SESSION_KEY] = $token;
+
+        return $token;
     }
 }

@@ -45,6 +45,8 @@ storage/rate-limits/*
 !storage/rate-limits/.gitkeep
 storage/locks/*
 !storage/locks/.gitkeep
+storage/provision/*
+!storage/provision/.gitkeep
 /logs/
 cache/
 .cache/

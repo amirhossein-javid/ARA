@@ -33,6 +33,7 @@ Environment::load(ARA_BASE_PATH . '/.env');
 $app = require ARA_BASE_PATH . '/config/app.php';
 $database = require ARA_BASE_PATH . '/config/database.php';
 $consultation = require ARA_BASE_PATH . '/config/consultation.php';
+$auth = require ARA_BASE_PATH . '/config/auth.php';
 
 if (!in_array($app['environment'], ['local', 'development', 'testing', 'production'], true)) {
     throw new \RuntimeException('APP_ENV has an unsupported value.');
@@ -67,4 +68,5 @@ return [
     'app' => $app,
     'database' => $database,
     'consultation' => $consultation,
+    'auth' => $auth,
 ];
