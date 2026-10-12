@@ -55,6 +55,8 @@ The public form and administrator actions use a server-side token with constant-
 
 Origin and Referer are checked against `APP_URL` when present, but the CSRF token remains the primary control. Login errors do not disclose whether an account exists. Authentication checks the database on every protected page so inactive accounts lose access on their next request.
 
+HTTPS enforcement and the `Secure` cookie decision use the server's `HTTPS` state or port `443`. Raw forwarding headers such as `X-Forwarded-Proto` are not trusted because they can be client-controlled unless a separately configured trusted proxy removes and rewrites them. The supported cPanel layout terminates TLS at Apache; reverse-proxy deployments require an explicit trusted-proxy configuration before launch.
+
 Every Phase 4A dashboard route repeats that access check and sends private `no-store` responses. Search uses fixed SQL structure and prepared values; status values come from a server-side allow list; pagination is bounded; and request identifiers must be positive integers. Stored contact details, messages, and administrator notes are escaped before HTML rendering. Status changes, notes, and permanent deletion are POST-only, same-origin checked, and CSRF protected. Deletion also requires an explicit confirmation field.
 
 Phase 4B portfolio routes use the same controls. Public queries include only `is_published = 1` and use fixed ordering. Project text is escaped for HTML, Telegram URLs are restricted to HTTPS `t.me` post paths and revalidated before public rendering, and database image paths must match the random CMS filename pattern. Draft records are not returned by the public query.

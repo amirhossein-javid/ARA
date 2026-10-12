@@ -126,6 +126,8 @@ The administrator routes are:
 
 All administrator accounts have identical permissions because the schema has no role column. Production admin routes require HTTPS. Login and logout use CSRF tokens, same-origin checks, fixed redirects, private no-store responses, prepared SQL, generic credential errors, keyed file rate limits, session-ID regeneration, and server-side expiration. The idle timeout is 30 minutes and the absolute timeout is 8 hours.
 
+HTTPS detection intentionally uses Apache/PHP's trusted `HTTPS` state or server port `443`; client-supplied forwarding headers are not trusted. The documented cPanel layout terminates TLS at Apache. A deployment behind a separate reverse proxy must first configure that proxy and Apache to expose a trusted HTTPS state rather than forwarding arbitrary client headers to PHP.
+
 ## Admin Dashboard and Consultation Workflow
 
 The protected dashboard is available at `/admin`. `/admin/consultations` provides fixed-order server-side pagination, allow-listed status filtering, prepared search queries, and links to private request details. The dashboard counts all, new, in-progress, and last-seven-day requests.

@@ -40,8 +40,12 @@ final class Session
     public static function isSecureRequest(): bool
     {
         $https = strtolower((string) ($_SERVER['HTTPS'] ?? ''));
-        $forwardedProto = strtolower(trim(explode(',', (string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''))[0]));
+        $serverPort = filter_var(
+            $_SERVER['SERVER_PORT'] ?? null,
+            FILTER_VALIDATE_INT,
+            ['options' => ['min_range' => 1, 'max_range' => 65535]]
+        );
 
-        return ($https !== '' && $https !== 'off') || $forwardedProto === 'https';
+        return ($https !== '' && $https !== 'off' && $https !== '0') || $serverPort === 443;
     }
 }

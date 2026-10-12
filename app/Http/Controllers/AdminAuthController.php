@@ -192,13 +192,9 @@ final class AdminAuthController
             ['options' => ['min_range' => 0]]
         );
 
-        if ($rawContentLength !== null && $contentLength === false) {
-            return false;
-        }
-
         return $contentType === 'application/x-www-form-urlencoded'
-            && ($contentLength === null
-                || $contentLength <= $this->configuration['request_max_bytes']);
+            && is_int($contentLength)
+            && $contentLength <= $this->configuration['request_max_bytes'];
     }
 
     private function renderLogin(?string $errorMessage, string $username, int $status): never
