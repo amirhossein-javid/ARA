@@ -1,254 +1,268 @@
-# ARA Studio Website
+# ARA Studio
 
-ARA Studio is a Persian, right-to-left agency website with a lightweight PHP 8.2+ backend. Phase 2 provides consultation persistence, Phase 3 adds secure authentication, Phase 4A adds consultation management, Phase 4B adds the portfolio CMS, Phase 4C adds administrator lifecycle management and public site settings, and Phase 4D adds secure homepage SEO management. Notifications, role management, and a general-purpose CMS are not implemented.
+**A consultation-led Persian digital studio website with a secure, lightweight administration system.**
 
-## Requirements
+[Official website](https://ara-studio.ir) · [Security](SECURITY.md) · [Deployment](DEPLOYMENT.md) · [Agent guidelines](AGENTS.md)
 
-- PHP 8.2 or newer
-- `pdo` and `pdo_mysql` PHP extensions
-- PHP `fileinfo` extension for upload MIME verification
-- MySQL 8+ or a compatible MariaDB release
-- Apache with `mod_headers` recommended for cPanel deployments
+ARA Studio presents web design, e-commerce, landing page, visual identity, UI/UX, and custom digital solution services through a responsive Persian RTL experience. The repository also contains the native PHP administration system used to receive consultation requests, manage portfolio content, maintain administrator accounts, update public contact information, and control homepage SEO.
 
-No PHP framework, Composer dependency, Node dependency, or build step is required.
-Docker and other container tooling are not part of this project. A cPanel deployment requires no local development infrastructure or background service.
+The studio services described by the public website are business offerings. The CMS, API, authentication, and operational tooling described below are software capabilities implemented in this repository. No client history, pricing, testimonials, performance guarantees, or business statistics are implied.
 
-## Architecture
+> **Status:** the implementation has completed focused static and packaging review. It has not yet been validated end-to-end on the target PHP/MySQL/cPanel runtime. See [Testing and project status](#testing-and-project-status).
 
-```text
-app/
-  Auth/                       Admin repository, authentication, and session state
-  Consultation/               Public validation plus private management repositories
-  Portfolio/                  Portfolio persistence, validation, fallback data, and image storage
-  Seo/                        SEO validation, persistence, public documents, and image storage
-  Settings/                   Allow-listed public settings validation and persistence
-  Config/Environment.php       Minimal environment-file loader
-  Database/Connection.php      Reusable PDO connection factory
-  Http/Controllers/            Consultation and admin request handling
-  Http/                        JSON request/response and centralized safe errors
-  Http/SecurityHeaders.php     Application-level response headers
-  Security/                    Session CSRF, same-origin, and file rate limiting
-  Support/helpers.php          Context-aware HTML escaping helper
-bin/
-  database-check.php           Private CLI-only database connectivity check
-  provision-admins.php         Private one-time two-account provisioning
-  rotate-admin-password.php    Private credential rotation
-bootstrap/app.php              Autoloading, configuration, validation, and startup
-config/
-  app.php                      Application environment configuration
-  database.php                 Database configuration mapping
-database/migrations/           Versioned SQL migration foundation
-public/
-  index.php                    Only public PHP entry point
-  .htaccess                    Apache hardening and directory settings
-  assets/                      Existing frontend assets
-resources/views/home.php       Existing landing-page markup
-resources/views/admin/         Login, dashboard, request list, and request detail views
-storage/logs/                  Private runtime logs; log files are ignored
-storage/locks/                 Private duplicate-submission locks
-storage/rate-limits/           Private concurrent rate-limit state
-storage/provision/             Temporary private provisioning input
+## Contents
+
+- [Capabilities](#capabilities)
+- [Technology and architecture](#technology-and-architecture)
+- [Repository structure](#repository-structure)
+- [Application areas](#application-areas)
+- [Routes and API](#routes-and-api)
+- [Database migrations](#database-migrations)
+- [Security](#security)
+- [Installation overview](#installation-overview)
+- [Testing and project status](#testing-and-project-status)
+- [Maintenance and documentation](#maintenance-and-documentation)
+- [Contact](#contact)
+
+## Capabilities
+
+### Public experience
+
+- Responsive Persian RTL landing page with locally hosted Vazirmatn typography.
+- Consultation-oriented service presentation without fixed pricing.
+- Accessible mobile navigation, restrained motion, and reduced-motion support.
+- Consultation form with Persian loading, success, and error feedback.
+- Public portfolio populated from published database records.
+- Temporary sample cards shown only before the first CMS-managed portfolio record exists.
+- Database-backed brand and contact information.
+- Dynamic homepage metadata, Organization JSON-LD, `robots.txt`, and `sitemap.xml`.
+
+### Administration
+
+- Secure login/logout and authenticated dashboard.
+- Consultation search, pagination, workflow status, private notes, and confirmed deletion.
+- Portfolio CRUD with draft/published states, ordering, images, and optional per-project Telegram post links.
+- Equal-permission administrator creation, password rotation, activation, and deactivation safeguards.
+- Allow-listed public site settings.
+- Homepage SEO, social metadata, verification tokens, robots controls, and social image management.
+
+## Technology and architecture
+
+| Layer | Implementation |
+| --- | --- |
+| Backend | Native PHP 8.2+, strict types, small PSR-style namespace autoloader |
+| Database | MySQL/MariaDB through PDO with native prepared statements and `utf8mb4` |
+| Frontend | Server-rendered HTML5, CSS, and dependency-free vanilla JavaScript |
+| Typography | Locally hosted Vazirmatn WOFF2 |
+| Web server | Apache with `.htaccess` routing and upload-directory hardening |
+| Hosting | Shared cPanel with separate public and private roots |
+| Dependencies | No framework, Composer package, Node runtime, or build step |
+
+`public/index.php` is the only public PHP entry point. It discovers the private application, loads `bootstrap/app.php`, applies configuration and security headers, routes requests to focused controllers, and renders private PHP views. Controllers coordinate validation and use services or repositories for authentication, persistence, settings, portfolio, and SEO operations. PDO repositories communicate with MySQL/MariaDB; templates render escaped server-side output; CSS and JavaScript remain static public assets.
+
+```mermaid
+flowchart LR
+    B[Browser] --> A[Apache / public/index.php]
+    A --> X[Private bootstrap and configuration]
+    X --> C[Controllers]
+    C --> S[Services and validators]
+    C --> R[PDO repositories]
+    R --> D[(MySQL / MariaDB)]
+    C --> V[Server-rendered views]
+    V --> B
+    B --> F[CSS, JS, fonts and images]
 ```
 
-The homepage reads published portfolio projects from MySQL. Consultation submissions, authenticated dashboard routes, and private CLI database checks also create database connections.
+Protected controllers call the shared authentication boundary on every request. Mutations are POST-only, same-origin checked, CSRF protected, strictly validated, and routed to fixed destinations.
 
-## Local Setup
+## Repository structure
 
-1. Copy `.env.example` to `.env`.
-2. Replace every database placeholder with credentials for a local development database. Keep `.env` outside Git.
-3. Set `APP_ENV=local`, `APP_DEBUG=true`, and an accurate local `APP_URL`.
-4. Set `APP_KEY` to a private random value of at least 32 characters. Do not reuse a database password or commit this value.
-5. Import all unapplied migrations in numeric order and ensure `storage/logs`, `storage/locks`, `storage/rate-limits`, `public/assets/portfolio/uploads`, and `public/assets/seo/uploads` are writable by the PHP process.
-6. Start the site from the public document root:
+```text
+ARA/
+├── app/
+│   ├── Auth/                 authentication, sessions and account lifecycle
+│   ├── Config/               environment loader
+│   ├── Consultation/         request validation and persistence
+│   ├── Database/             PDO connection factory
+│   ├── Http/                 controllers, JSON handling, errors and headers
+│   ├── Portfolio/            portfolio repository, validation and image storage
+│   ├── Security/             CSRF, session, same-origin and rate limiting
+│   ├── Seo/                  SEO settings, documents and social image storage
+│   ├── Settings/             allow-listed public settings
+│   └── Support/              HTML escaping helper
+├── bin/                      private CLI database/provisioning utilities
+├── bootstrap/app.php         autoloading, configuration and startup validation
+├── config/                   application, database and feature configuration
+├── database/migrations/      ordered manual SQL migrations
+├── public/                   the only web-accessible source directory
+│   ├── index.php             front controller and router
+│   └── assets/               CSS, JS, fonts, logo and managed upload directories
+├── resources/views/          public and admin PHP views
+├── storage/                  private logs, locks, rate limits and provisioning input
+├── README.md                 primary project documentation
+├── AGENTS.md                 contributor and AI-agent instructions
+├── SECURITY.md               security model and review baseline
+└── DEPLOYMENT.md             cPanel installation, update and smoke-test runbook
+```
+
+In production, `public/` maps to `public_html/`. All other application directories, `.env`, logs, locks, migrations, CLI scripts, and views live in a sibling private `ara-studio/` directory outside the document root.
+
+## Application areas
+
+### Public website and consultation system
+
+The public site presents ARA Studio's verified service categories, working principles, consultation process, and portfolio in Persian. JavaScript enhances navigation, one-time reveal effects, lightweight parallax, and the consultation form while respecting `prefers-reduced-motion`.
+
+The form submits an exact JSON shape to `POST /api/consultation`. Server-side processing enforces an 8 KiB limit, field and format validation, an empty honeypot, CSRF, same-origin checks, a keyed file-backed rate limit, and a ten-minute duplicate window. A successful HTTP `201` is returned only after PDO persistence. Unexpected errors remain generic and are recorded privately without the request body.
+
+Administrators can search requests by stored content, filter and paginate them, inspect full details, and move them through `new`, `in_progress`, `completed`, and `archived`. Private notes and the last updating administrator are stored separately from the public flow. Deletion requires an authenticated, CSRF-protected confirmation request.
+
+### Administration panel
+
+The Persian RTL admin interface provides:
+
+- dashboard totals and recent consultation submissions;
+- consultation management;
+- portfolio management;
+- administrator account management;
+- public site settings; and
+- SEO settings.
+
+Authentication uses `password_hash()`/`password_verify()`, strict cookie-only PHP sessions, session ID regeneration, 30-minute idle and eight-hour absolute expiration, and a database-backed session version. Password changes or deactivation invalidate affected sessions. Self-deactivation and deactivation of the last active administrator are rejected. All administrators have equal permissions; there is no role system or public registration.
+
+### Portfolio CMS
+
+Administrators can create, inspect, update, publish, unpublish, order, and delete portfolio projects. Images can be uploaded, replaced, or removed. JPEG, PNG, and WebP content is checked using both image metadata and `fileinfo`, bounded by size and dimensions, renamed with random server filenames, and stored as relative paths in MySQL.
+
+Each project may have one validated HTTPS `t.me` post URL. Published projects with a URL render the public «مشاهده بیشتر» CTA in a safe new tab; the CTA is omitted when no valid URL exists. Public queries return only published records ordered by `display_order` and stable `id`. Drafts never appear publicly.
+
+### Site settings and SEO
+
+Site settings are restricted to the brand name, website URL, Telegram URL, contact email, and optional public phone number. The UI cannot add arbitrary keys or store executable configuration.
+
+SEO management covers the homepage title and meta description, same-host HTTPS canonical URL, Open Graph and Twitter/X metadata, a managed social image, index/follow controls, and optional Google/Bing verification tokens. Public output is escaped or safely JSON encoded. `robots.txt` excludes admin and API routes; `sitemap.xml` contains only the configured homepage because the application has no public project-detail routes. Organization JSON-LD uses only configured public business information.
+
+## Routes and API
+
+`{id}` is a positive integer. Every `/admin` route requires production HTTPS, and every admin route except login requires a current authenticated administrator.
+
+| Method | Path | Purpose | Authentication |
+| --- | --- | --- | --- |
+| GET, HEAD | `/`, `/index.php` | Public homepage | No |
+| POST | `/api/consultation` | Validate and persist a consultation request | Public session + CSRF |
+| GET, HEAD | `/robots.txt`, `/sitemap.xml` | Dynamic public SEO documents | No |
+| GET, POST | `/admin/login` | Login form and authentication | No |
+| POST | `/admin/logout` | End the current session | Yes |
+| GET | `/admin` | Dashboard | Yes |
+| GET | `/admin/consultations` | Searchable consultation list | Yes |
+| GET | `/admin/consultations/{id}` | Consultation detail | Yes |
+| POST | `/admin/consultations/{id}/status` | Change workflow status | Yes |
+| POST | `/admin/consultations/{id}/notes` | Save private notes | Yes |
+| POST | `/admin/consultations/{id}/delete` | Confirmed deletion | Yes |
+| GET | `/admin/portfolio` | Portfolio list | Yes |
+| GET, POST | `/admin/portfolio/create` | Create form and project creation | Yes |
+| GET | `/admin/portfolio/{id}` | Portfolio project editor | Yes |
+| POST | `/admin/portfolio/{id}/update` | Update content or image | Yes |
+| POST | `/admin/portfolio/{id}/publication` | Publish or unpublish | Yes |
+| POST | `/admin/portfolio/{id}/delete` | Confirmed project deletion | Yes |
+| GET | `/admin/admins` | Administrator list | Yes |
+| GET, POST | `/admin/admins/create` | Account form and creation | Yes |
+| GET | `/admin/admins/{id}` | Account detail | Yes |
+| POST | `/admin/admins/{id}/password` | Password change | Yes |
+| POST | `/admin/admins/{id}/status` | Activate or deactivate account | Yes |
+| GET, POST | `/admin/settings` | View or save public settings | Yes |
+| GET, POST | `/admin/seo` | View or save SEO settings | Yes |
+
+Unsupported methods return `405`; unmatched routes return `404`.
+
+## Database migrations
+
+Migrations are manual, forward-only SQL files. Apply them once, in numeric order. They are not run by web requests or deployment code.
+
+| Version | File | Purpose |
+| --- | --- | --- |
+| 0000 | `0000_database_foundation.sql` | Establishes `utf8mb4` and UTC session conventions; creates no table. |
+| 0001 | `0001_create_consultation_requests.sql` | Creates consultation fields, default `new` status, timestamps, and indexes. |
+| 0002 | `0002_create_admins.sql` | Creates unique administrator usernames, password hashes, active state, and timestamps. |
+| 0003 | `0003_extend_consultation_workflow.sql` | Adds private notes, last-updating administrator, workflow constraint, indexes, and foreign key. |
+| 0004 | `0004_create_portfolio_projects.sql` | Creates portfolio content, image/link fields, ordering, publication state, constraints, and indexes. |
+| 0005 | `0005_create_site_settings.sql` | Creates allow-listed public settings with administrator attribution and approved defaults. |
+| 0006 | `0006_add_admin_session_version.sql` | Adds durable administrator session invalidation. |
+| 0007 | `0007_create_seo_settings.sql` | Creates the singleton SEO record, validation constraints, attribution, and approved defaults. |
+
+The persistent entities are `consultation_requests`, `admins`, `portfolio_projects`, `site_settings`, and `seo_settings`. Consultation workflow, site settings, and SEO rows can reference an administrator with `ON DELETE SET NULL`, preserving business content if an account is later removed at the database level. Application account management does not provide account deletion.
+
+There is no migration ledger or automated down migration. Back up the database and runtime uploads before applying changes, inspect the current schema, and import only unapplied files. [DEPLOYMENT.md](DEPLOYMENT.md) defines the supported procedure and rollback boundary.
+
+## Security
+
+Implemented controls include:
+
+- per-request authorization for protected routes;
+- password hashing and generic login failures;
+- strict sessions, secure cookie attributes, expiration, regeneration, and credential-version invalidation;
+- CSRF tokens and same-origin checks for mutations;
+- allow-listed server-side input validation and bounded request sizes;
+- native PDO prepared statements with emulation disabled;
+- contextual HTML escaping and safe JSON encoding;
+- keyed file-backed login/API rate limiting and duplicate-submission locking;
+- validated random-name image uploads, path-constrained deletion, and non-executable upload directories;
+- fixed redirect targets and POST-only destructive actions;
+- private `.env`, application files, logs, migrations, and provisioning input;
+- generic public errors with private reference-based logging; and
+- CSP, HSTS on production HTTPS, clickjacking, MIME, referrer, permissions, opener, and resource-policy headers.
+
+HTTPS decisions use Apache/PHP's trusted HTTPS state or port `443`; raw forwarding headers are not trusted. These controls have received focused source review, but the project does **not** claim an independent security audit or penetration test. See [SECURITY.md](SECURITY.md) for the complete security baseline.
+
+## Installation overview
+
+Prerequisites:
+
+- PHP 8.2+ with `PDO`, `pdo_mysql`, `fileinfo`, `session`, `filter`, and `json`;
+- MySQL 8 or compatible MariaDB;
+- Apache `mod_rewrite` and recommended `mod_headers`;
+- `file_uploads=On`, `upload_max_filesize>=5M`, and `post_max_size>=6M` for managed images.
+
+For a local environment:
+
+1. Copy `.env.example` to `.env` and replace every placeholder with private local values.
+2. Set `APP_ENV=local`, an accurate local `APP_URL`, and a private `APP_KEY` of at least 32 characters.
+3. Create a database and import migrations `0000` through `0007` in order.
+4. Make `storage/logs`, `storage/locks`, `storage/rate-limits`, and both public upload directories writable by PHP.
+5. Start PHP from the public document root:
 
    ```bash
    php -S 127.0.0.1:8080 -t public
    ```
 
-7. Open `http://127.0.0.1:8080`.
+6. Verify real PDO connectivity:
 
-To check real database connectivity from a terminal, run:
-
-```bash
-php bin/database-check.php
-```
-
-The command intentionally returns only a success message or a generic error reference. Database failures are recorded in `storage/logs/app.log`; credentials are not printed to the terminal or browser.
-
-## Configuration
-
-Configuration can come from real process/server environment variables or the private `.env` file. Existing process variables take precedence. Supported values are documented in `.env.example`:
-
-- `APP_ENV`: `local`, `development`, `testing`, or `production`
-- `APP_DEBUG`: must be `false` in production
-- `APP_URL`: absolute HTTP(S) origin
-- `APP_TIMEZONE`: valid PHP timezone identifier
-- `APP_KEY`: private random value with at least 32 characters, used only for keyed server-side hashes
-- `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`
-- `DB_CHARSET`: fixed to `utf8mb4`
-
-Do not place `.env` in `public/` or `public_html`, and do not add real credentials to `.env.example`.
-
-## Database Foundation
-
-`Ara\Database\Connection` uses PDO with:
-
-- exception-based error handling;
-- native prepared statements (`ATTR_EMULATE_PREPARES=false`);
-- associative fetches;
-- `utf8mb4` in the DSN;
-- non-persistent connections.
-
-`database/migrations/0000_database_foundation.sql` establishes the connection conventions. `0001` through `0006` provide consultation, authentication, portfolio, site-setting, and session-version storage. `0007_create_seo_settings.sql` creates one strict homepage SEO record with sensible ARA defaults and no fabricated business information.
-
-For cPanel initialization:
-
-1. Create a database and a dedicated database user in **MySQL Databases**.
-2. Grant that user only the privileges needed by the current phase and future approved migrations.
-3. Create the private `.env` file with the cPanel-prefixed database and user names.
-4. Open phpMyAdmin, select the application database, choose **Import**, and import migrations `0000` through `0007` in numeric order. Existing Phase 4C installations should back up the database and import only `0007_create_seo_settings.sql`.
-5. Confirm that `consultation_requests`, `admins`, `portfolio_projects`, `site_settings`, and `seo_settings` exist. Never import migrations automatically from a web request or deployment script.
-6. If cPanel Terminal is available, run `php bin/database-check.php` from the private application directory. A successful command is the only acceptable evidence of real connectivity.
-
-## Consultation API
-
-`POST /api/consultation` accepts JSON only, with a maximum body size of 8 KiB. The fields are `name`, `contact`, `service`, `message`, and the empty `website` honeypot. The endpoint applies strict allow-list validation, a session-backed CSRF token, Origin/Referer checks when those headers are present, a keyed per-address file rate limit, and a ten-minute duplicate window.
-
-Successful persistence returns HTTP `201`. Validation, CSRF, duplicate, media-type, request-size, method, and rate-limit failures use appropriate `4xx` responses. Unexpected failures return generic JSON and are logged privately without request bodies or form values.
-
-## Administrator Authentication
-
-The administrator routes are:
-
-- `GET /admin/login` and `POST /admin/login`;
-- protected `GET /admin`;
-- `POST /admin/logout`.
-
-All administrator accounts have identical permissions because the schema has no role column. Production admin routes require HTTPS. Login and logout use CSRF tokens, same-origin checks, fixed redirects, private no-store responses, prepared SQL, generic credential errors, keyed file rate limits, session-ID regeneration, and server-side expiration. The idle timeout is 30 minutes and the absolute timeout is 8 hours.
-
-HTTPS detection intentionally uses Apache/PHP's trusted `HTTPS` state or server port `443`; client-supplied forwarding headers are not trusted. The documented cPanel layout terminates TLS at Apache. A deployment behind a separate reverse proxy must first configure that proxy and Apache to expose a trusted HTTPS state rather than forwarding arbitrary client headers to PHP.
-
-## Admin Dashboard and Consultation Workflow
-
-The protected dashboard is available at `/admin`. `/admin/consultations` provides fixed-order server-side pagination, allow-listed status filtering, prepared search queries, and links to private request details. The dashboard counts all, new, in-progress, and last-seven-day requests.
-
-The detail page supports the four workflow states `new`, `in_progress`, `completed`, and `archived`, private notes up to 5,000 characters, and confirmed permanent deletion. Status, note, and deletion mutations are POST-only and require the current session's CSRF token. The administrator responsible for the latest status or note update is stored through `last_updated_by_admin_id`; no request content or contact data is written to application logs.
-
-Administrator management is available at `/admin/admins`, public settings at `/admin/settings`, and SEO management at `/admin/seo`.
-
-## Administrator Accounts and Site Settings
-
-Authenticated administrators can list accounts, create another equal-permission administrator, rotate any administrator password, and activate or deactivate accounts. Each sensitive change requires the acting administrator's current password. Self-deactivation and deactivation of the last active administrator are rejected. Password and activation-state changes increment a server-side session version, so all existing sessions for the affected account are rejected even if a deactivated account is later reactivated.
-
-The settings screen edits only `brand_name`, `website_url`, `telegram_url`, `contact_email`, and the optional `contact_phone`. Keys are fixed in application code, values are strictly validated, and prepared upserts store the administrator responsible for the latest update. The public homepage uses these values for organization identity, website host, footer copyright, contact links, and structured data; the browser title is controlled by SEO settings. Settings cannot contain PHP, arbitrary configuration, or secrets.
-
-## SEO Management
-
-`/admin/seo` manages the homepage title and description, same-host HTTPS canonical URL, Open Graph and Twitter/X copy, index/follow directives, optional Google/Bing verification tokens, and one shared social image. The image accepts verified JPEG, PNG, or WebP content up to 5 MiB and is stored under `public/assets/seo/uploads/` with a random filename. Resetting the image restores the existing ARA logo; no remote image URL is accepted.
-
-The homepage emits escaped canonical, robots, Open Graph, Twitter/X, and verification metadata. JSON-LD describes only the verified ARA organization name, website, logo, email, Telegram URL, and optional public telephone. `/robots.txt` excludes `/admin` and `/api/`; `/sitemap.xml` contains only the configured public homepage because the current portfolio has no standalone public project routes. Both documents use the configured public site URL.
-
-## Portfolio CMS
-
-`/admin/portfolio` lists projects with server-side pagination and publication filtering. Administrators can create and edit projects, control display order, independently set an optional Telegram post URL, publish or unpublish, replace or remove the image, and permanently delete a confirmed project. Writes are POST-only and CSRF protected.
-
-The public homepage selects only published records ordered by `display_order` and stable `id`. While the portfolio table has no admin-managed records, the six original cards remain visible as explicitly temporary design samples. Creating the first managed project retires that fallback; if all managed records are drafts, a neutral empty state is shown instead. Drafts are never included in the public query. Optional Telegram links use the public CTA «مشاهده بیشتر» and are omitted when absent.
-
-Images are stored under `public_html/assets/portfolio/uploads/` using random server filenames. JPEG, PNG, and WebP files are accepted up to 5 MiB, 6000×6000 pixels, and 24 million pixels. Both image metadata and `fileinfo` MIME detection must agree. The upload directory's `.htaccess` disables script handlers and direct access to executable extensions.
-
-## Administrator Provisioning
-
-### One-time provisioning without SSH
-
-Provisioning is private and CLI-only; there is no registration or browser setup endpoint.
-
-1. Import `0002_create_admins.sql` through phpMyAdmin.
-2. In cPanel File Manager, create `/home/ACCOUNT/ara-studio/storage/provision/admins.json` outside `public_html` with exactly this structure and two unique lowercase usernames:
-
-   ```json
-   {
-     "admins": [
-       {"username": "replace_admin_one", "password": "replace-with-a-long-unique-password"},
-       {"username": "replace_admin_two", "password": "replace-with-another-long-unique-password"}
-     ]
-   }
+   ```bash
+   php bin/database-check.php
    ```
 
-3. Set the file permission to `0600`.
-4. In cPanel **Cron Jobs**, temporarily schedule this command using the PHP 8.2+ CLI path supplied by the host:
+Administrator provisioning is private and CLI-only. `bin/provision-admins.php` accepts exactly two accounts from a permission-restricted private JSON file and refuses a non-empty administrators table. There is no browser setup endpoint.
 
-   ```text
-   /usr/local/bin/php -q /home/ACCOUNT/ara-studio/bin/provision-admins.php
-   ```
+For shared cPanel, do not upload the repository root to `public_html`. Use the supported two-root archive, create `.env` only in the private directory, preserve runtime uploads, apply migrations manually, and follow [DEPLOYMENT.md](DEPLOYMENT.md) for fresh installation, updates, permissions, provisioning, rollback, and smoke tests. Never place real credentials in Git or a deployment archive.
 
-5. Let it run once, review the generic success result, and immediately remove the cron job. The script refuses to run when any administrator already exists, creates exactly two accounts in one transaction, hashes passwords with `password_hash()`, and clears/deletes `admins.json` after success.
-6. If the script reports exit code `2`, the accounts were created but cPanel prevented automatic deletion; immediately delete the emptied provisioning file manually.
+## Testing and project status
 
-Never place provisioning JSON in Git, the deployment ZIP, `public_html`, a cron command, or cron email output.
+The current codebase has undergone focused static review for routing, validation, prepared SQL, output escaping, authentication boundaries, CSRF, session invalidation, upload path safety, migration order, and deployment-package contents. JavaScript syntax and repository whitespace checks have also been run successfully during the latest review cycle.
 
-### Password rotation
+PHP CLI and MySQL/MariaDB were unavailable in the review environment. Consequently, PHP syntax execution, real PDO connectivity, migration execution, Apache behavior, browser flows, consultation persistence, and cPanel permissions have **not** been verified on the target runtime. The repository is a staging candidate, not a production-tested release. Production approval requires every applicable smoke test in [DEPLOYMENT.md](DEPLOYMENT.md) to pass on the actual hosting environment.
 
-Create private `storage/provision/password-rotation.json` with permission `0600`:
+## Maintenance and documentation
 
-```json
-{
-  "username": "replace_admin_username",
-  "current_password": "replace-current-password",
-  "new_password": "replace-new-long-unique-password"
-}
-```
+Keep changes small and aligned with the existing controller/service/repository/view boundaries. Add a new numbered migration for schema evolution; never rewrite an applied migration. Preserve the public/private hosting boundary and runtime uploads. Future notification, reporting, or CMS work should reuse the existing authentication, CSRF, validation, escaping, error, and persistence utilities.
 
-Run `/usr/local/bin/php -q /home/ACCOUNT/ara-studio/bin/rotate-admin-password.php` once through a temporary cPanel Cron Job, then remove the job. Rotation requires the active account's current password, uses `password_verify()` and `password_hash()`, and deletes the private input after success. Existing sessions for that account are rejected on their next protected request.
+Documentation responsibilities:
 
-## Secure cPanel Layout
+- [AGENTS.md](AGENTS.md) — mandatory workflow and conventions for developers and AI coding agents.
+- [SECURITY.md](SECURITY.md) — detailed security requirements and review checklist.
+- [DEPLOYMENT.md](DEPLOYMENT.md) — authoritative cPanel installation, update, rollback, and runtime test procedure.
 
-Use separate public and private directories:
+## Contact
 
-```text
-/home/ACCOUNT/
-  ara-studio/                 Private; not web-accessible
-    .env
-    app/
-    bin/
-    bootstrap/
-    config/
-    database/
-    resources/
-    storage/
-  public_html/                Domain document root
-    .htaccess
-    index.php
-    assets/
-      portfolio/uploads/      Runtime portfolio images and Apache upload hardening
-      seo/uploads/            Runtime social images and Apache upload hardening
-```
-
-The public entry point automatically discovers a private sibling directory named `ara-studio`. If the host requires another location, define the server environment variable `ARA_PRIVATE_PATH` with its absolute path. Never expose that path in client-side code.
-
-Recommended deployment workflow:
-
-1. Build an archive with exactly two top-level folders: `public_html/` from `public/`, and `ara-studio/` containing the private runtime directories listed above.
-2. Exclude `.git`, `.env`, logs, database exports, tests, editor files, local artifacts, and previous ZIP files.
-3. Upload and extract the archive in the account home directory, not inside `public_html` as a single repository tree.
-4. Create `.env` manually in `/home/ACCOUNT/ara-studio/` after extraction. Do not place secrets in the archive.
-5. Set private directories to restrictive permissions supported by the host (typically directories `750`, files `640`) and keep `storage/logs`, `storage/locks`, and `storage/rate-limits` writable by PHP. Keep `public_html/assets/portfolio/uploads` writable by PHP and readable by Apache; never grant executable permission to uploaded files. Provisioning JSON must use `0600`.
-6. Import all outstanding migrations in order. For a Phase 4C database, import `0007_create_seo_settings.sql` before uploading this code.
-7. Select PHP 8.2+ and enable `pdo_mysql` and `fileinfo` in **MultiPHP Manager** or **Select PHP Version**. Set `upload_max_filesize` to at least `5M` and `post_max_size` to at least `6M`.
-8. Preserve and back up runtime portfolio and SEO images before replacing or cleaning `public_html`; deployment archives contain upload hardening but no user-uploaded images. Never replace existing `assets/portfolio/uploads/` or `assets/seo/uploads/` contents during deployment.
-9. Confirm HTTPS, CSP/JSON-LD, metadata, robots, sitemap, consultation flow, admin login/logout, account lifecycle safeguards, settings rendering, SEO image replacement/reset, portfolio CRUD, draft exclusion, pagination, filters, notes, status changes, and deletion confirmation before changing production traffic.
-
-Do not upload the repository root directly to `public_html`.
-
-## Error Behavior
-
-PHP warnings and exceptions are converted into centralized failures. Browser responses remain generic and contain a random reference ID; stack traces, SQL details, paths, and credentials are not rendered. Detailed diagnostics are written only to `storage/logs/app.log`. Development mode may add a note that a private log exists, but it still does not expose exception details.
-
-Production must use `APP_ENV=production` and `APP_DEBUG=false`. Configure log rotation and retention through cPanel so private diagnostics do not grow indefinitely.
-
-## Next Phase
-
-The recommended next phase should be deliberately selected, such as approved notification delivery or operational reporting. Every future admin action must reuse the existing authentication, no-cache, validation, escaping, prepared-query, upload, and CSRF boundaries.
-
-See [SECURITY.md](SECURITY.md) before adding any public endpoint or authenticated feature.
-
-For the exact fresh-install, update, rollback, permission, provisioning, and runtime smoke-test procedure, follow [DEPLOYMENT.md](DEPLOYMENT.md).
+- Website: [ara-studio.ir](https://ara-studio.ir)
+- Telegram: [ARA_STUDIO_TM](https://t.me/ARA_STUDIO_TM)
+- Email: [info@ara-studio.ir](mailto:info@ara-studio.ir)

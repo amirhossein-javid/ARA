@@ -141,7 +141,17 @@ Rollback means restoring the pre-deployment database export and the matching upl
 Provisioning is CLI-only and refuses to run if any administrator already exists.
 
 1. In cPanel File Manager, create `/home/ACCOUNT/ara-studio/storage/provision/admins.json` with permission `0600` and exactly two unique lowercase usernames. Enter credentials directly in cPanel; never put them in the deployment ZIP or Git.
-2. Use the documented JSON structure from `README.md`. Each password must contain at least 14 characters and must not equal its username.
+2. Use exactly this structure. Each password must contain at least 14 characters and must not equal its username:
+
+   ```json
+   {
+     "admins": [
+       {"username": "replace_admin_one", "password": "replace-with-a-long-unique-password"},
+       {"username": "replace_admin_two", "password": "replace-with-another-long-unique-password"}
+     ]
+   }
+   ```
+
 3. When SSH/Terminal is unavailable, create a temporary cPanel Cron Job:
 
    ```text
