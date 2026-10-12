@@ -25,14 +25,6 @@ final class PortfolioRepository
         return $statement->fetchAll();
     }
 
-    public function hasAny(): bool
-    {
-        $statement = $this->connection->prepare('SELECT id FROM portfolio_projects LIMIT 1');
-        $statement->execute();
-
-        return $statement->fetchColumn() !== false;
-    }
-
     /** @return array{items: list<array<string, mixed>>, total: int} */
     public function paginate(?bool $published, int $page, int $perPage): array
     {

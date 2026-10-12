@@ -35,7 +35,7 @@
     <div class="container header-inner">
       <a class="brand" href="#top" aria-label="صفحه اصلی <?= e($siteSettings['brand_name']) ?>"><img src="assets/ara-logo.png" alt="لوگوی <?= e($siteSettings['brand_name']) ?>"><span><b>ARA</b><small>STUDIO</small></span></a>
       <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="main-nav" data-menu-toggle><span></span><span></span><span></span><span class="sr-only">باز کردن منو</span></button>
-      <nav id="main-nav" class="main-nav" aria-label="منوی اصلی" data-nav><a href="#services">خدمات</a><a href="#difference">چرا ARA؟</a><a href="#work">نمونه‌کارها</a><a href="#process">مسیر همکاری</a></nav>
+      <nav id="main-nav" class="main-nav" aria-label="منوی اصلی" data-nav><a href="#services">خدمات</a><a href="#difference">چرا آرا</a><a href="#work">نمونه‌کارها</a><a href="#process">مسیر همکاری</a></nav>
       <a class="button button-dark header-cta" href="#consultation">درخواست مشاوره <span aria-hidden="true">←</span></a>
     </div>
   </header>
@@ -94,21 +94,16 @@
 
     <section class="section portfolio" id="work" aria-labelledby="work-title">
       <div class="container">
-        <div class="portfolio-heading reveal"><p class="kicker">منتخب پروژه‌ها</p><h2 id="work-title">نمونه‌کارها</h2><p><?= $portfolioIsTemporary ? 'این شش کارت صرفاً نمونه‌های آزمایشی هستند و به مشتری یا همکاری واقعی اشاره ندارند.' : 'مروری بر پروژه‌هایی که برای نمایش عمومی انتخاب شده‌اند.' ?></p></div>
-        <?php if ($portfolioIsTemporary): ?><div class="portfolio-note reveal"><span>۶ نمونه آزمایشی</span><p>این محتوا موقت است و با ثبت اولین پروژه واقعی در پنل مدیریت کنار می‌رود.</p></div><?php endif; ?>
+        <div class="portfolio-heading reveal"><p class="kicker">منتخب پروژه‌ها</p><h2 id="work-title">نمونه‌کارها</h2><p>مروری بر پروژه‌هایی که برای نمایش عمومی انتخاب شده‌اند.</p></div>
         <div class="portfolio-grid" data-portfolio-grid aria-live="polite">
-          <?php if ($portfolioProjects === []): ?><p class="portfolio-empty reveal">در حال حاضر نمونه‌کاری برای نمایش عمومی منتشر نشده است.</p><?php endif; ?>
+          <?php if ($portfolioProjects === []): ?><div class="portfolio-empty reveal"><span aria-hidden="true">ARA / PORTFOLIO</span><h3>در حال حاضر پروژه‌ای برای نمایش عمومی منتشر نشده است.</h3><p>برای گفت‌وگو درباره نیاز کسب‌وکارتان می‌توانید درخواست مشاوره ثبت کنید.</p><a class="button button-ghost" href="#consultation">شروع گفت‌وگو <span aria-hidden="true">←</span></a></div><?php endif; ?>
           <?php foreach ($portfolioProjects as $project): ?>
-            <?php $isPlaceholder = (bool) ($project['is_placeholder'] ?? false); ?>
             <article class="project-card reveal">
-              <div class="project-shot">
-                <?php if (is_string($project['image_path'] ?? null) && $project['image_path'] !== ''): ?>
+              <?php if (is_string($project['image_path'] ?? null) && $project['image_path'] !== ''): ?>
+                <div class="project-shot">
                   <img src="/<?= e($project['image_path']) ?>" alt="پیش‌نمایش <?= e((string) $project['title']) ?>" loading="lazy" decoding="async">
-                <?php else: ?>
-                  <div class="project-image-placeholder" aria-hidden="true"><span>ARA</span></div>
-                <?php endif; ?>
-                <?php if ($isPlaceholder): ?><span class="placeholder-label">نمونه آزمایشی طراحی</span><?php endif; ?>
-              </div>
+                </div>
+              <?php endif; ?>
               <div class="project-info">
                 <span class="project-category"><?= e((string) ($project['label'] ?? 'پروژه ARA')) ?></span>
                 <h3><?= e((string) $project['title']) ?></h3>
@@ -133,7 +128,7 @@
 
     <section class="consultation" id="consultation" aria-labelledby="consultation-title">
       <div class="container consultation-shell">
-        <div class="consultation-copy reveal"><p class="kicker">شروع همکاری</p><h2 id="consultation-title">درباره پروژه‌تان<br><span>چند خط بنویسید.</span></h2><p>فرم را تکمیل کنید تا درخواست شما با اطلاعات اولیه پروژه برای بررسی ثبت شود.</p><ul><li><span>✓</span> بدون نیاز به انتخاب پکیج یا قیمت ثابت</li><li><span>✓</span> مناسب حتی وقتی دامنه پروژه هنوز دقیق نیست</li></ul></div>
+        <div class="consultation-copy reveal"><p class="kicker">شروع همکاری</p><h2 id="consultation-title">درباره پروژه‌تان<br><span>چند خط بنویسید.</span></h2><p>فرم را تکمیل کنید تا درخواست شما با اطلاعات اولیه پروژه برای بررسی ثبت شود.</p><ul class="consultation-points"><li><span>✓</span> بدون نیاز به انتخاب پکیج یا قیمت ثابت</li><li><span>✓</span> مناسب حتی وقتی دامنه پروژه هنوز دقیق نیست</li></ul><div class="consultation-contacts" aria-label="راه‌های ارتباط با آرا"><p>راه‌های ارتباط مستقیم</p><a href="<?= e($siteSettings['telegram_url']) ?>" target="_blank" rel="noopener noreferrer"><span>تلگرام</span><bdi><?= e($siteTelegramLabel) ?></bdi></a><a href="mailto:<?= e($siteSettings['contact_email']) ?>"><span>ایمیل</span><bdi><?= e($siteSettings['contact_email']) ?></bdi></a><a href="<?= e($siteSettings['website_url']) ?>"><span>وب‌سایت</span><bdi><?= e($siteWebsiteHost) ?></bdi></a><?php if ($siteTelephoneHref !== null): ?><a href="<?= e($siteTelephoneHref) ?>"><span>تلفن</span><bdi><?= e($siteSettings['contact_phone']) ?></bdi></a><?php endif; ?></div></div>
         <form class="consultation-form reveal" action="/api/consultation" method="post" data-consultation-form><input type="hidden" name="csrf_token" value="<?= e($csrfToken) ?>" data-csrf-token><div class="honeypot" aria-hidden="true"><label for="website">وب‌سایت</label><input id="website" name="website" type="text" tabindex="-1" autocomplete="off"></div><div class="field"><label for="name">نام و نام خانوادگی</label><input id="name" name="name" autocomplete="name" minlength="2" maxlength="100" required placeholder="نام شما"></div><div class="field"><label for="contact">راه ارتباطی</label><input id="contact" name="contact" autocomplete="email" inputmode="email" maxlength="190" required placeholder="شماره تماس یا ایمیل"></div><div class="field field-full"><label for="service">موضوع همکاری</label><select id="service" name="service" required><option value="نیاز به راهنمایی دارم">نیاز به راهنمایی دارم</option><option value="وب‌سایت شرکتی">وب‌سایت شرکتی</option><option value="وب‌سایت فروشگاهی">وب‌سایت فروشگاهی</option><option value="لندینگ‌پیج">لندینگ‌پیج</option><option value="برندینگ و هویت بصری">برندینگ و هویت بصری</option><option value="طراحی UI / UX">طراحی UI / UX</option><option value="راهکار دیجیتال اختصاصی">راهکار دیجیتال اختصاصی</option></select></div><div class="field field-full"><label for="message">درباره پروژه</label><textarea id="message" name="message" rows="4" minlength="10" maxlength="2000" required placeholder="هدف، نیاز یا مسئله اصلی را کوتاه توضیح دهید"></textarea></div><button class="button button-dark field-full" type="submit" data-submit-button>ارسال درخواست مشاوره <span aria-hidden="true">←</span></button><p class="form-status field-full" role="status" aria-live="polite" aria-atomic="true" data-form-status></p></form>
       </div>
     </section>

@@ -32,8 +32,7 @@ The studio services described by the public website are business offerings. The 
 - Consultation-oriented service presentation without fixed pricing.
 - Accessible mobile navigation, restrained motion, and reduced-motion support.
 - Consultation form with Persian loading, success, and error feedback.
-- Public portfolio populated from published database records.
-- Temporary sample cards shown only before the first CMS-managed portfolio record exists.
+- Public portfolio populated exclusively from published database records, with a production-ready empty state when none are available.
 - Database-backed brand and contact information.
 - Dynamic homepage metadata, Organization JSON-LD, `robots.txt`, and `sitemap.xml`.
 
@@ -247,7 +246,7 @@ For shared cPanel, do not upload the repository root to `public_html`. Use the s
 
 ## Testing and project status
 
-The current codebase has undergone focused static review for routing, validation, prepared SQL, output escaping, authentication boundaries, CSRF, session invalidation, upload path safety, migration order, and deployment-package contents. JavaScript syntax and repository whitespace checks have also been run successfully during the latest review cycle.
+The current codebase has undergone focused static review for routing, validation, prepared SQL, output escaping, authentication boundaries, CSRF, session invalidation, upload path safety, migration order, and deployment-package contents. The public portfolio no longer contains temporary sample projects and shows only published CMS records. JavaScript syntax and repository whitespace checks have also been run successfully during the latest review cycle.
 
 PHP CLI and MySQL/MariaDB were unavailable in the review environment. Consequently, PHP syntax execution, real PDO connectivity, migration execution, Apache behavior, browser flows, consultation persistence, and cPanel permissions have **not** been verified on the target runtime. The repository is a staging candidate, not a production-tested release. Production approval requires every applicable smoke test in [DEPLOYMENT.md](DEPLOYMENT.md) to pass on the actual hosting environment.
 

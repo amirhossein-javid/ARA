@@ -10,7 +10,6 @@ use Ara\Http\Controllers\AdminSeoController;
 use Ara\Http\Controllers\ConsultationController;
 use Ara\Database\Connection;
 use Ara\Portfolio\PortfolioRepository;
-use Ara\Portfolio\TemporaryPortfolio;
 use Ara\Portfolio\PortfolioValidator;
 use Ara\Security\Csrf;
 use Ara\Seo\PublicSeo;
@@ -281,6 +280,8 @@ $publicConnection = Connection::make($container['database']);
 $settingsService = new SiteSettings();
 $siteSettings = $settingsService->safePublicValues((new SiteSettingsRepository($publicConnection))->all());
 $siteWebsiteHost = (string) parse_url($siteSettings['website_url'], PHP_URL_HOST);
+$siteTelegramLabel = preg_replace('#^https://t\.me/#i', 't.me/', rtrim($siteSettings['telegram_url'], '/'));
+$siteTelegramLabel = is_string($siteTelegramLabel) ? $siteTelegramLabel : 'Telegram';
 $siteTelephoneHref = $settingsService->telephoneHref($siteSettings['contact_phone']);
 $seoService = new SeoSettings();
 $seoSettings = $seoService->safePublicValues(
@@ -315,33 +316,27 @@ $structuredDataJson = json_encode(
 );
 $cspNonce = $container['csp_nonce'];
 $publicPortfolio = new PortfolioRepository($publicConnection);
-$portfolioIsTemporary = !$publicPortfolio->hasAny();
-$portfolioProjects = $portfolioIsTemporary ? [] : $publicPortfolio->published();
+$portfolioProjects = $publicPortfolio->published();
+$telegramValidator = new PortfolioValidator();
 
-if ($portfolioIsTemporary) {
-    $portfolioProjects = TemporaryPortfolio::projects();
-} else {
-    $telegramValidator = new PortfolioValidator();
+foreach ($portfolioProjects as &$portfolioProject) {
+    $telegramUrl = $portfolioProject['telegram_url'] ?? null;
 
-    foreach ($portfolioProjects as &$portfolioProject) {
-        $telegramUrl = $portfolioProject['telegram_url'] ?? null;
-
-        if (!is_string($telegramUrl) || !$telegramValidator->isTelegramPostUrl($telegramUrl)) {
-            $portfolioProject['telegram_url'] = null;
-        }
-
-        $imagePath = $portfolioProject['image_path'] ?? null;
-
-        if (
-            !is_string($imagePath)
-            || preg_match('#^assets/portfolio/uploads/[a-f0-9]{32}\.(?:jpg|png|webp)$#D', $imagePath) !== 1
-        ) {
-            $portfolioProject['image_path'] = null;
-        }
+    if (!is_string($telegramUrl) || !$telegramValidator->isTelegramPostUrl($telegramUrl)) {
+        $portfolioProject['telegram_url'] = null;
     }
 
-    unset($portfolioProject);
+    $imagePath = $portfolioProject['image_path'] ?? null;
+
+    if (
+        !is_string($imagePath)
+        || preg_match('#^assets/portfolio/uploads/[a-f0-9]{32}\.(?:jpg|png|webp)$#D', $imagePath) !== 1
+    ) {
+        $portfolioProject['image_path'] = null;
+    }
 }
+
+unset($portfolioProject);
 
 header('Cache-Control: no-store');
 

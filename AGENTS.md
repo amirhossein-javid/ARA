@@ -25,12 +25,12 @@ Technology and hosting constraints:
 - `app/Http/Controllers/`: request orchestration and response selection.
 - `app/Auth/`: administrator authentication, access checks, sessions, provisioning, and account lifecycle.
 - `app/Consultation/`: public validation, duplicate protection, and public/admin repositories.
-- `app/Portfolio/`: portfolio validation, persistence, temporary fallback, and image storage.
+- `app/Portfolio/`: portfolio validation, persistence, and image storage.
 - `app/Settings/` and `app/Seo/`: allow-listed settings, SEO persistence, public documents, and social images.
 - `app/Security/`: CSRF, same-origin, session, and file-backed rate limiting.
 - `app/Database/Connection.php`: the only PDO construction pattern.
 - `resources/views/`: escaped public and Persian RTL admin templates.
-- `public/assets/`: dependency-free frontend code, fonts, logo, placeholders, and hardened upload directories.
+- `public/assets/`: dependency-free frontend code, fonts, logo, and hardened upload directories.
 - `database/migrations/`: manual forward-only schema history.
 - `bin/`: private CLI-only database and account tools.
 - `storage/`: private logs, locks, rate-limit state, and temporary provisioning input.
@@ -58,7 +58,7 @@ The bootstrap must remain dependency-free and fail closed on invalid production 
 - Account changes require the acting administrator's current password where implemented. Preserve self-deactivation, last-active-admin, and session-invalidation safeguards.
 - Portfolio and SEO image code validates actual content, MIME, size and dimensions; creates random filenames; stores relative paths; and deletes only validated paths below the configured directory.
 - Site and SEO settings use code-level allow lists. Do not add arbitrary key/value or executable configuration editing.
-- The public portfolio queries only published records. The six static cards are explicitly temporary and appear only while no CMS-managed project exists.
+- The public portfolio renders only published CMS records. When none are published, it must show the production empty state and must not introduce sample or fictional projects.
 - `robots.txt`, `sitemap.xml`, metadata, and JSON-LD use validated database settings and verified public contact information only.
 
 ### Database changes
