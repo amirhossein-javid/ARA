@@ -1,6 +1,6 @@
 # Security Policy and Backend Baseline
 
-ARA Studio exposes a public landing page, a same-origin consultation endpoint, and Phase 3 administrator authentication. The protected area currently confirms authentication only; it includes no consultation dashboard, roles, notification integration, or CMS.
+ARA Studio exposes a public landing page, a same-origin consultation endpoint, Phase 3 administrator authentication, and the Phase 4A private consultation dashboard. It includes no public request viewer, role system, notification integration, portfolio manager, SEO editor, settings editor, or CMS.
 
 ## Reporting a Vulnerability
 
@@ -55,6 +55,8 @@ The public form and administrator actions use a server-side token with constant-
 
 Origin and Referer are checked against `APP_URL` when present, but the CSRF token remains the primary control. Login errors do not disclose whether an account exists. Authentication checks the database on every protected page so inactive accounts lose access on their next request.
 
+Every Phase 4A dashboard route repeats that access check and sends private `no-store` responses. Search uses fixed SQL structure and prepared values; status values come from a server-side allow list; pagination is bounded; and request identifiers must be positive integers. Stored contact details, messages, and administrator notes are escaped before HTML rendering. Status changes, notes, and permanent deletion are POST-only, same-origin checked, and CSRF protected. Deletion also requires an explicit confirmation field.
+
 ## Administrator Provisioning
 
 There is no public registration, setup, password-reset, or recovery endpoint. The two equal-permission accounts are created by a private CLI-only script using a temporary `0600` JSON file outside the web root. Provisioning refuses any non-empty `admins` table, requires exactly two distinct accounts, uses `password_hash(PASSWORD_DEFAULT)`, and deletes the temporary plaintext input after success.
@@ -97,7 +99,7 @@ The endpoint accepts only a bounded JSON object with an exact field allow list. 
 
 Rate-limit and duplicate files use `flock` for concurrent request safety. Keyed identities are distributed across a fixed maximum of 256 lock/state shards; expired rate-limit entries are removed while a shard is locked, and each shard has a defensive entry cap. The duplicate check compares validated values only inside a bounded ten-minute database window and executes under a keyed filesystem lock. All inserts and duplicate checks use native PDO prepared statements.
 
-Define and document a retention/deletion policy before real consultation data is collected. Keep SMTP, Telegram, and other delivery integrations disabled until separately reviewed.
+Define and document a retention/deletion policy before real consultation data is collected. Dashboard deletion is permanent, so create an approved database backup before bulk operational use and restrict cPanel backup access. Keep SMTP, Telegram, and other delivery integrations disabled until separately reviewed.
 
 ## Pre-Deployment Review
 
@@ -108,9 +110,9 @@ Before every cPanel upload:
 3. Confirm that all private directories and `.env` remain outside the web root.
 4. Search tracked and packaged files for real credentials and private keys.
 5. Run PHP syntax checks on every PHP file.
-6. Import migrations manually through phpMyAdmin and verify the table before enabling the form.
+6. Import migrations manually through phpMyAdmin in numeric order and verify the Phase 4A columns, constraints, indexes, and foreign key before opening the dashboard.
 7. Run the CLI database check only with an approved test or production configuration.
 8. Verify generic API failure behavior and writable private log, lock, and rate-limit directories.
-9. Verify admin HTTPS enforcement, generic login failures, login rate limits, session expiration, logout CSRF, and denial of unauthenticated access.
+9. Verify admin HTTPS enforcement, generic login failures, login rate limits, session expiration, logout CSRF, denial of unauthenticated access, escaped stored content, bounded pagination, allow-listed filters, mutation CSRF, and deletion confirmation.
 10. Confirm no provisioning or rotation JSON remains on the server.
 11. Review the rendered desktop/mobile site and its existing interactions for regressions.

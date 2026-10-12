@@ -136,33 +136,6 @@ final class AdminAuthController
         $this->redirect('/admin/login', 303);
     }
 
-    public function dashboard(): never
-    {
-        $this->requireSecureTransport();
-        $this->noStore();
-        $adminId = $this->currentAdminId();
-
-        if ($adminId === null) {
-            $this->redirect('/admin/login');
-        }
-
-        $connection = Connection::make($this->database);
-        $admin = (new AdminRepository($connection))->findActiveById($adminId);
-
-        if (
-            $admin === null
-            || !AuthSession::credentialIsCurrent($admin['password_hash'], $this->app['key'])
-        ) {
-            AuthSession::logout();
-            $this->redirect('/admin/login');
-        }
-
-        $adminUsername = $admin['username'];
-        $csrfToken = Csrf::token();
-        require $this->privatePath . '/resources/views/admin/home.php';
-        exit;
-    }
-
     /** @param list<string> $allowedMethods */
     public function methodNotAllowed(array $allowedMethods): never
     {

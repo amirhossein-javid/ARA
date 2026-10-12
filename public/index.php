@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Ara\Http\Controllers\AdminAuthController;
+use Ara\Http\Controllers\AdminDashboardController;
 use Ara\Http\Controllers\ConsultationController;
 use Ara\Security\Csrf;
 
@@ -53,7 +54,13 @@ if ($requestPath === '/api/consultation') {
 }
 
 if ($requestPath === '/admin' || str_starts_with($requestPath, '/admin/')) {
-    $adminController = new AdminAuthController(
+    $authController = new AdminAuthController(
+        $container['app'],
+        $container['database'],
+        $container['auth'],
+        $privatePath
+    );
+    $dashboardController = new AdminDashboardController(
         $container['app'],
         $container['database'],
         $container['auth'],
@@ -62,31 +69,71 @@ if ($requestPath === '/admin' || str_starts_with($requestPath, '/admin/')) {
     $requestMethod = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 
     if ($requestPath === '/admin/login' && $requestMethod === 'GET') {
-        $adminController->showLogin();
+        $authController->showLogin();
     }
 
     if ($requestPath === '/admin/login' && $requestMethod === 'POST') {
-        $adminController->login();
+        $authController->login();
     }
 
     if ($requestPath === '/admin/logout' && $requestMethod === 'POST') {
-        $adminController->logout();
+        $authController->logout();
     }
 
     if ($requestPath === '/admin' && $requestMethod === 'GET') {
-        $adminController->dashboard();
+        $dashboardController->dashboard();
+    }
+
+    if ($requestPath === '/admin/consultations' && $requestMethod === 'GET') {
+        $dashboardController->consultations();
+    }
+
+    $consultationRoute = [];
+
+    if (preg_match('#^/admin/consultations/([1-9][0-9]*)(?:/(status|notes|delete))?$#D', $requestPath, $consultationRoute) === 1) {
+        $requestId = filter_var($consultationRoute[1], FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 1, 'max_range' => PHP_INT_MAX],
+        ]);
+        $action = $consultationRoute[2] ?? '';
+
+        if ($requestId !== false && $action === '' && $requestMethod === 'GET') {
+            $dashboardController->consultation($requestId);
+        }
+
+        if ($requestId !== false && $action === 'status' && $requestMethod === 'POST') {
+            $dashboardController->updateStatus($requestId);
+        }
+
+        if ($requestId !== false && $action === 'notes' && $requestMethod === 'POST') {
+            $dashboardController->updateNotes($requestId);
+        }
+
+        if ($requestId !== false && $action === 'delete' && $requestMethod === 'POST') {
+            $dashboardController->deleteConsultation($requestId);
+        }
+
+        if ($requestId !== false) {
+            $dashboardController->methodNotAllowed($action === '' ? ['GET'] : ['POST']);
+        }
     }
 
     $allowedMethods = match ($requestPath) {
         '/admin/login' => ['GET', 'POST'],
         '/admin/logout' => ['POST'],
         '/admin' => ['GET'],
+        '/admin/consultations' => ['GET'],
         default => [],
     };
 
     if ($allowedMethods !== []) {
-        $adminController->methodNotAllowed($allowedMethods);
+        if (in_array($requestPath, ['/admin/login', '/admin/logout'], true)) {
+            $authController->methodNotAllowed($allowedMethods);
+        }
+
+        $dashboardController->methodNotAllowed($allowedMethods);
     }
+
+    $dashboardController->notFound();
 }
 
 if (!in_array($requestPath, ['/', '/index.php'], true)) {
