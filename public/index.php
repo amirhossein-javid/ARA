@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Ara\Http\Controllers\AdminAuthController;
 use Ara\Http\Controllers\AdminDashboardController;
+use Ara\Http\Controllers\AdminManagementController;
 use Ara\Http\Controllers\AdminPortfolioController;
 use Ara\Http\Controllers\ConsultationController;
 use Ara\Database\Connection;
@@ -11,6 +12,8 @@ use Ara\Portfolio\PortfolioRepository;
 use Ara\Portfolio\TemporaryPortfolio;
 use Ara\Portfolio\PortfolioValidator;
 use Ara\Security\Csrf;
+use Ara\Settings\SiteSettings;
+use Ara\Settings\SiteSettingsRepository;
 
 error_reporting(E_ALL);
 ini_set('display_errors', '0');
@@ -79,6 +82,9 @@ if ($requestPath === '/admin' || str_starts_with($requestPath, '/admin/')) {
         $privatePath,
         __DIR__
     );
+    $managementController = new AdminManagementController(
+        $container['app'], $container['database'], $container['auth'], $privatePath
+    );
     $requestMethod = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 
     if ($requestPath === '/admin/login' && $requestMethod === 'GET') {
@@ -111,6 +117,22 @@ if ($requestPath === '/admin' || str_starts_with($requestPath, '/admin/')) {
 
     if ($requestPath === '/admin/portfolio/create' && $requestMethod === 'POST') {
         $portfolioController->create();
+    }
+
+    if ($requestPath === '/admin/admins' && $requestMethod === 'GET') {
+        $managementController->admins();
+    }
+    if ($requestPath === '/admin/admins/create' && $requestMethod === 'GET') {
+        $managementController->createForm();
+    }
+    if ($requestPath === '/admin/admins/create' && $requestMethod === 'POST') {
+        $managementController->create();
+    }
+    if ($requestPath === '/admin/settings' && $requestMethod === 'GET') {
+        $managementController->settings();
+    }
+    if ($requestPath === '/admin/settings' && $requestMethod === 'POST') {
+        $managementController->saveSettings();
     }
 
     $consultationRoute = [];
@@ -171,6 +193,26 @@ if ($requestPath === '/admin' || str_starts_with($requestPath, '/admin/')) {
         }
     }
 
+    $adminAccountRoute = [];
+    if (preg_match('#^/admin/admins/([1-9][0-9]*)(?:/(password|status))?$#D', $requestPath, $adminAccountRoute) === 1) {
+        $adminId = filter_var($adminAccountRoute[1], FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 1, 'max_range' => PHP_INT_MAX],
+        ]);
+        $action = $adminAccountRoute[2] ?? '';
+        if ($adminId !== false && $action === '' && $requestMethod === 'GET') {
+            $managementController->edit($adminId);
+        }
+        if ($adminId !== false && $action === 'password' && $requestMethod === 'POST') {
+            $managementController->password($adminId);
+        }
+        if ($adminId !== false && $action === 'status' && $requestMethod === 'POST') {
+            $managementController->status($adminId);
+        }
+        if ($adminId !== false) {
+            $managementController->methodNotAllowed($action === '' ? ['GET'] : ['POST']);
+        }
+    }
+
     $allowedMethods = match ($requestPath) {
         '/admin/login' => ['GET', 'POST'],
         '/admin/logout' => ['POST'],
@@ -178,6 +220,9 @@ if ($requestPath === '/admin' || str_starts_with($requestPath, '/admin/')) {
         '/admin/consultations' => ['GET'],
         '/admin/portfolio' => ['GET'],
         '/admin/portfolio/create' => ['GET', 'POST'],
+        '/admin/admins' => ['GET'],
+        '/admin/admins/create' => ['GET', 'POST'],
+        '/admin/settings' => ['GET', 'POST'],
         default => [],
     };
 
@@ -188,6 +233,9 @@ if ($requestPath === '/admin' || str_starts_with($requestPath, '/admin/')) {
 
         if (str_starts_with($requestPath, '/admin/portfolio')) {
             $portfolioController->methodNotAllowed($allowedMethods);
+        }
+        if (str_starts_with($requestPath, '/admin/admins') || $requestPath === '/admin/settings') {
+            $managementController->methodNotAllowed($allowedMethods);
         }
 
         $dashboardController->methodNotAllowed($allowedMethods);
@@ -212,7 +260,12 @@ if (!in_array(strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')), ['GET'
 }
 
 $csrfToken = Csrf::token();
-$publicPortfolio = new PortfolioRepository(Connection::make($container['database']));
+$publicConnection = Connection::make($container['database']);
+$settingsService = new SiteSettings();
+$siteSettings = $settingsService->safePublicValues((new SiteSettingsRepository($publicConnection))->all());
+$siteWebsiteHost = (string) parse_url($siteSettings['website_url'], PHP_URL_HOST);
+$siteTelephoneHref = $settingsService->telephoneHref($siteSettings['contact_phone']);
+$publicPortfolio = new PortfolioRepository($publicConnection);
 $portfolioIsTemporary = !$publicPortfolio->hasAny();
 $portfolioProjects = $portfolioIsTemporary ? [] : $publicPortfolio->published();
 

@@ -1,6 +1,6 @@
 # ARA Studio Website
 
-ARA Studio is a Persian, right-to-left agency website with a lightweight PHP 8.2+ backend. Phase 2 provides consultation persistence, Phase 3 adds secure authentication for exactly two equal-permission administrators, Phase 4A adds consultation management, and Phase 4B adds the portfolio CMS and public portfolio feed. SEO, settings, notifications, role management, and a general-purpose CMS are not implemented.
+ARA Studio is a Persian, right-to-left agency website with a lightweight PHP 8.2+ backend. Phase 2 provides consultation persistence, Phase 3 adds secure authentication for the initial equal-permission administrators, Phase 4A adds consultation management, Phase 4B adds the portfolio CMS, and Phase 4C adds protected administrator lifecycle management plus allow-listed public site settings. SEO, notifications, role management, and a general-purpose CMS are not implemented.
 
 ## Requirements
 
@@ -20,6 +20,7 @@ app/
   Auth/                       Admin repository, authentication, and session state
   Consultation/               Public validation plus private management repositories
   Portfolio/                  Portfolio persistence, validation, fallback data, and image storage
+  Settings/                   Allow-listed public settings validation and persistence
   Config/Environment.php       Minimal environment-file loader
   Database/Connection.php      Reusable PDO connection factory
   Http/Controllers/            Consultation and admin request handling
@@ -97,15 +98,15 @@ Do not place `.env` in `public/` or `public_html`, and do not add real credentia
 - `utf8mb4` in the DSN;
 - non-persistent connections.
 
-`database/migrations/0000_database_foundation.sql` establishes the connection conventions. `0001_create_consultation_requests.sql` creates the Phase 2 consultation table. `0002_create_admins.sql` creates the two-account authentication table without roles or personal profile fields. `0003_extend_consultation_workflow.sql` adds consultation workflow fields. `0004_create_portfolio_projects.sql` creates the portfolio table without inserting fictional projects.
+`database/migrations/0000_database_foundation.sql` establishes the connection conventions. `0001_create_consultation_requests.sql` creates the Phase 2 consultation table. `0002_create_admins.sql` creates the authentication table without roles or personal profile fields. `0003_extend_consultation_workflow.sql` adds consultation workflow fields. `0004_create_portfolio_projects.sql` creates the portfolio table without inserting fictional projects. `0005_create_site_settings.sql` creates the strict public-settings store and seeds only the owner-supplied public contact values. `0006_add_admin_session_version.sql` adds a monotonic credential version used to invalidate sessions reliably.
 
 For cPanel initialization:
 
 1. Create a database and a dedicated database user in **MySQL Databases**.
 2. Grant that user only the privileges needed by the current phase and future approved migrations.
 3. Create the private `.env` file with the cPanel-prefixed database and user names.
-4. Open phpMyAdmin, select the application database, choose **Import**, and import migrations `0000` through `0004` in numeric order. Existing installations should import only the new, unapplied migration after taking a database backup.
-5. Confirm that `consultation_requests`, `admins`, and `portfolio_projects` exist. Never import migrations automatically from a web request or deployment script.
+4. Open phpMyAdmin, select the application database, choose **Import**, and import migrations `0000` through `0006` in numeric order. Existing Phase 4B installations should back up the database and import `0005`, then `0006`.
+5. Confirm that `consultation_requests`, `admins`, `portfolio_projects`, and `site_settings` exist. Never import migrations automatically from a web request or deployment script.
 6. If cPanel Terminal is available, run `php bin/database-check.php` from the private application directory. A successful command is the only acceptable evidence of real connectivity.
 
 ## Consultation API
@@ -122,7 +123,7 @@ The administrator routes are:
 - protected `GET /admin`;
 - `POST /admin/logout`.
 
-Both accounts have identical permissions because the schema has no role column. Production admin routes require HTTPS. Login and logout use CSRF tokens, same-origin checks, fixed redirects, private no-store responses, prepared SQL, generic credential errors, keyed file rate limits, session-ID regeneration, and server-side expiration. The idle timeout is 30 minutes and the absolute timeout is 8 hours.
+All administrator accounts have identical permissions because the schema has no role column. Production admin routes require HTTPS. Login and logout use CSRF tokens, same-origin checks, fixed redirects, private no-store responses, prepared SQL, generic credential errors, keyed file rate limits, session-ID regeneration, and server-side expiration. The idle timeout is 30 minutes and the absolute timeout is 8 hours.
 
 ## Admin Dashboard and Consultation Workflow
 
@@ -130,7 +131,13 @@ The protected dashboard is available at `/admin`. `/admin/consultations` provide
 
 The detail page supports the four workflow states `new`, `in_progress`, `completed`, and `archived`, private notes up to 5,000 characters, and confirmed permanent deletion. Status, note, and deletion mutations are POST-only and require the current session's CSRF token. The administrator responsible for the latest status or note update is stored through `last_updated_by_admin_id`; no request content or contact data is written to application logs.
 
-Administrator management, SEO, and settings remain disabled navigation labels. Portfolio management is implemented in Phase 4B.
+Administrator management is available at `/admin/admins`; public settings are available at `/admin/settings`. SEO remains a disabled navigation label.
+
+## Administrator Accounts and Site Settings
+
+Authenticated administrators can list accounts, create another equal-permission administrator, rotate any administrator password, and activate or deactivate accounts. Each sensitive change requires the acting administrator's current password. Self-deactivation and deactivation of the last active administrator are rejected. Password and activation-state changes increment a server-side session version, so all existing sessions for the affected account are rejected even if a deactivated account is later reactivated.
+
+The settings screen edits only `brand_name`, `website_url`, `telegram_url`, `contact_email`, and the optional `contact_phone`. Keys are fixed in application code, values are strictly validated, and prepared upserts store the administrator responsible for the latest update. The public homepage uses these values for the document title, website host, footer copyright, and contact links. Settings cannot contain PHP, arbitrary configuration, or secrets.
 
 ## Portfolio CMS
 
@@ -215,9 +222,10 @@ Recommended deployment workflow:
 3. Upload and extract the archive in the account home directory, not inside `public_html` as a single repository tree.
 4. Create `.env` manually in `/home/ACCOUNT/ara-studio/` after extraction. Do not place secrets in the archive.
 5. Set private directories to restrictive permissions supported by the host (typically directories `750`, files `640`) and keep `storage/logs`, `storage/locks`, and `storage/rate-limits` writable by PHP. Keep `public_html/assets/portfolio/uploads` writable by PHP and readable by Apache; never grant executable permission to uploaded files. Provisioning JSON must use `0600`.
-6. Select PHP 8.2+ and enable `pdo_mysql` and `fileinfo` in **MultiPHP Manager** or **Select PHP Version**. Set `upload_max_filesize` to at least `5M` and `post_max_size` to at least `6M`.
-7. Preserve and back up runtime portfolio images before replacing or cleaning `public_html`; deployment archives contain upload hardening but no user-uploaded images.
-8. Confirm HTTPS, response headers, the homepage, consultation flow, admin login/logout, expiration behavior, portfolio CRUD, draft exclusion, image replacement/deletion, pagination, filters, notes, status changes, and deletion confirmation before changing DNS or production traffic.
+6. Import `0005_create_site_settings.sql` and then `0006_add_admin_session_version.sql` through phpMyAdmin before uploading the Phase 4C code; verify the five allow-listed setting rows and the new `admins.session_version` column.
+7. Select PHP 8.2+ and enable `pdo_mysql` and `fileinfo` in **MultiPHP Manager** or **Select PHP Version**. Set `upload_max_filesize` to at least `5M` and `post_max_size` to at least `6M`.
+8. Preserve and back up runtime portfolio images before replacing or cleaning `public_html`; deployment archives contain upload hardening but no user-uploaded images. Never replace the existing `assets/portfolio/uploads/` directory during deployment.
+9. Confirm HTTPS, response headers, the homepage, consultation flow, admin login/logout, account lifecycle safeguards, settings rendering, portfolio CRUD, draft exclusion, image replacement/deletion, pagination, filters, notes, status changes, and deletion confirmation before changing DNS or production traffic.
 
 Do not upload the repository root directly to `public_html`.
 
@@ -229,6 +237,6 @@ Production must use `APP_ENV=production` and `APP_DEBUG=false`. Configure log ro
 
 ## Next Phase
 
-The recommended next phase is one deliberately selected dashboard module, such as SEO controls or settings. Every future admin action must reuse the existing authentication, no-cache, validation, escaping, prepared-query, upload, and CSRF boundaries. Email or Telegram delivery should be added only after the stored submission flow is verified on hosting and provider secrets management is approved.
+The recommended next phase is one deliberately selected module, such as SEO controls. Every future admin action must reuse the existing authentication, no-cache, validation, escaping, prepared-query, upload, and CSRF boundaries. Email or Telegram delivery should be added only after the stored submission flow is verified on hosting and provider secrets management is approved.
 
 See [SECURITY.md](SECURITY.md) before adding any public endpoint or authenticated feature.

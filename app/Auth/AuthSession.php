@@ -65,15 +65,20 @@ final class AuthSession
         return $adminId;
     }
 
-    public static function credentialIsCurrent(string $passwordHash, string $applicationKey): bool
+    public static function credentialIsCurrent(string $passwordHash, int $sessionVersion, string $applicationKey): bool
     {
         Session::start();
         $storedVersion = $_SESSION[self::CREDENTIAL_VERSION] ?? null;
-        $currentVersion = hash_hmac('sha256', $passwordHash, $applicationKey);
+        $currentVersion = self::credentialVersion($passwordHash, $sessionVersion, $applicationKey);
 
         return is_string($storedVersion)
             && strlen($storedVersion) === 64
             && hash_equals($storedVersion, $currentVersion);
+    }
+
+    public static function credentialVersion(string $passwordHash, int $sessionVersion, string $applicationKey): string
+    {
+        return hash_hmac('sha256', $passwordHash . "\0" . $sessionVersion, $applicationKey);
     }
 
     public static function logout(): void

@@ -6,6 +6,7 @@ namespace Ara\Auth;
 
 use DomainException;
 use PDO;
+use PDOException;
 use Throwable;
 
 final class AdminAccountService
@@ -112,6 +113,98 @@ final class AdminAccountService
             $admin['id'],
             password_hash($newPassword, PASSWORD_DEFAULT)
         );
+    }
+
+    public function createAccount(int $actingAdminId, mixed $username, mixed $password, mixed $currentPassword): int
+    {
+        $this->confirmActingPassword($actingAdminId, $currentPassword);
+        $username = $this->normalizeUsername($username);
+        $password = $this->validatePassword($password, $username);
+
+        try {
+            return $this->admins->create($username, password_hash($password, PASSWORD_DEFAULT));
+        } catch (PDOException $exception) {
+            if ($exception->getCode() === '23000') {
+                throw new DomainException('امکان ایجاد این حساب وجود ندارد.');
+            }
+
+            throw $exception;
+        }
+    }
+
+    public function changePassword(
+        int $actingAdminId,
+        int $targetAdminId,
+        mixed $currentPassword,
+        mixed $newPassword
+    ): bool {
+        $this->confirmActingPassword($actingAdminId, $currentPassword);
+        $target = $this->admins->findById($targetAdminId);
+
+        if ($target === null) {
+            throw new DomainException('حساب مدیر پیدا نشد.');
+        }
+
+        $newPassword = $this->validatePassword($newPassword, $target['username']);
+
+        if (password_verify($newPassword, $target['password_hash'])) {
+            throw new DomainException('رمز عبور جدید باید با رمز فعلی متفاوت باشد.');
+        }
+
+        $this->admins->updatePasswordHash($targetAdminId, password_hash($newPassword, PASSWORD_DEFAULT));
+
+        return $actingAdminId === $targetAdminId;
+    }
+
+    public function setActive(
+        int $actingAdminId,
+        int $targetAdminId,
+        bool $active,
+        mixed $currentPassword
+    ): void {
+        $this->confirmActingPassword($actingAdminId, $currentPassword);
+
+        if (!$active && $actingAdminId === $targetAdminId) {
+            throw new DomainException('نمی‌توانید حسابی را که با آن وارد شده‌اید غیرفعال کنید.');
+        }
+
+        $this->connection->beginTransaction();
+
+        try {
+            $target = $this->admins->findById($targetAdminId);
+
+            if ($target === null) {
+                throw new DomainException('حساب مدیر پیدا نشد.');
+            }
+
+            $activeIds = $this->admins->activeIdsForUpdate();
+
+            if (!$active && $target['is_active'] === 1 && count($activeIds) <= 1) {
+                throw new DomainException('آخرین مدیر فعال را نمی‌توان غیرفعال کرد.');
+            }
+
+            if ((bool) $target['is_active'] !== $active && !$this->admins->setActive($targetAdminId, $active)) {
+                throw new DomainException('وضعیت حساب تغییر نکرد.');
+            }
+
+            $this->connection->commit();
+        } catch (Throwable $throwable) {
+            if ($this->connection->inTransaction()) {
+                $this->connection->rollBack();
+            }
+
+            throw $throwable;
+        }
+    }
+
+    private function confirmActingPassword(int $actingAdminId, mixed $password): void
+    {
+        $admin = $this->admins->findById($actingAdminId);
+
+        if (!is_string($password) || $admin === null || $admin['is_active'] !== 1
+            || !password_verify($password, $admin['password_hash'])) {
+            throw new DomainException('امکان تأیید این تغییر وجود ندارد.');
+        }
     }
 
     private function normalizeUsername(mixed $username): string

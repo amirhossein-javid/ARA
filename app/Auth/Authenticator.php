@@ -27,13 +27,17 @@ final class Authenticator
 
         if (password_needs_rehash($storedHash, PASSWORD_DEFAULT)) {
             $storedHash = password_hash($password, PASSWORD_DEFAULT);
-            $this->admins->updatePasswordHash($admin['id'], $storedHash);
+            $admin['session_version'] = $this->admins->updatePasswordHash($admin['id'], $storedHash);
         }
 
         return [
             'id' => $admin['id'],
             'username' => $admin['username'],
-            'credential_version' => hash_hmac('sha256', $storedHash, $this->applicationKey),
+            'credential_version' => AuthSession::credentialVersion(
+                $storedHash,
+                $admin['session_version'],
+                $this->applicationKey
+            ),
         ];
     }
 }

@@ -39,7 +39,11 @@ final class AdminAccess
 
         if (
             $admin === null
-            || !AuthSession::credentialIsCurrent($admin['password_hash'], $this->app['key'])
+            || !AuthSession::credentialIsCurrent(
+                $admin['password_hash'],
+                $admin['session_version'],
+                $this->app['key']
+            )
         ) {
             AuthSession::logout();
             return null;

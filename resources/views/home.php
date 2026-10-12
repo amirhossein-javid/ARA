@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="ARA Studio؛ طراحی وب‌سایت، رابط کاربری و هویت بصری با رویکرد مشاوره‌محور.">
   <meta name="theme-color" content="#0b0c0e">
-  <title>ARA Studio | طراحی تجربه‌های دیجیتال متمایز</title>
+  <title><?= e($siteSettings['brand_name']) ?> | طراحی تجربه‌های دیجیتال متمایز</title>
   <link rel="icon" href="assets/ara-logo.png" type="image/png">
   <link rel="preload" href="assets/fonts/Vazirmatn-wght.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="assets/styles.css">
@@ -16,7 +16,7 @@
 
   <header class="site-header" data-header>
     <div class="container header-inner">
-      <a class="brand" href="#top" aria-label="صفحه اصلی ARA Studio"><img src="assets/ara-logo.png" alt="لوگوی ARA"><span><b>ARA</b><small>STUDIO</small></span></a>
+      <a class="brand" href="#top" aria-label="صفحه اصلی <?= e($siteSettings['brand_name']) ?>"><img src="assets/ara-logo.png" alt="لوگوی <?= e($siteSettings['brand_name']) ?>"><span><b>ARA</b><small>STUDIO</small></span></a>
       <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="main-nav" data-menu-toggle><span></span><span></span><span></span><span class="sr-only">باز کردن منو</span></button>
       <nav id="main-nav" class="main-nav" aria-label="منوی اصلی" data-nav><a href="#services">خدمات</a><a href="#difference">چرا ARA؟</a><a href="#work">نمونه‌کارها</a><a href="#process">مسیر همکاری</a></nav>
       <a class="button button-dark header-cta" href="#consultation">درخواست مشاوره <span aria-hidden="true">←</span></a>
@@ -37,7 +37,7 @@
         <div class="hero-showcase hero-enter" data-hero-enter data-parallax-stage aria-label="نمایش طراحی واکنش‌گرای وب‌سایت در دسکتاپ و موبایل">
           <div class="showcase-orbit" aria-hidden="true"></div>
           <div class="showcase-glow" data-parallax-layer data-depth="0.3"></div>
-          <div class="desktop-frame" data-parallax-layer data-depth="0.75"><div class="browser-bar"><div><i></i><i></i><i></i></div><span>ara-studio.ir / experience</span></div><div class="desktop-screen"><div class="screen-nav"><b>ARA.</b><div><span></span><span></span><span></span></div><em>شروع پروژه</em></div><div class="screen-hero"><div class="screen-copy"><small>DESIGN / STRATEGY / TECHNOLOGY</small><strong>Distinct digital<br><mark>experiences.</mark></strong><i></i><i></i><button type="button" tabindex="-1">Explore work →</button></div><div class="screen-art"><div class="chrome-orb"><span></span></div><div class="screen-card"><small>PROJECT FLOW</small><b>Clear by design</b><i></i></div></div></div><div class="screen-stats"><span><b>01</b><small>Discover</small></span><span><b>02</b><small>Design</small></span><span><b>03</b><small>Deliver</small></span></div></div></div>
+          <div class="desktop-frame" data-parallax-layer data-depth="0.75"><div class="browser-bar"><div><i></i><i></i><i></i></div><span><?= e($siteWebsiteHost) ?> / experience</span></div><div class="desktop-screen"><div class="screen-nav"><b>ARA.</b><div><span></span><span></span><span></span></div><em>شروع پروژه</em></div><div class="screen-hero"><div class="screen-copy"><small>DESIGN / STRATEGY / TECHNOLOGY</small><strong>Distinct digital<br><mark>experiences.</mark></strong><i></i><i></i><button type="button" tabindex="-1">Explore work →</button></div><div class="screen-art"><div class="chrome-orb"><span></span></div><div class="screen-card"><small>PROJECT FLOW</small><b>Clear by design</b><i></i></div></div></div><div class="screen-stats"><span><b>01</b><small>Discover</small></span><span><b>02</b><small>Design</small></span><span><b>03</b><small>Deliver</small></span></div></div></div>
           <div class="mobile-frame" data-parallax-layer data-depth="1.15"><div class="mobile-notch"></div><div class="mobile-screen"><div class="mobile-nav"><b>A</b><i></i></div><small>BUILT FOR CLARITY</small><strong>Digital<br><mark>clarity.</mark></strong><div class="mobile-visual"><div></div><span></span></div><span class="mobile-button"></span></div></div>
           <div class="floating-note note-top" data-parallax-layer data-depth="1.45"><span>✓</span><div><b>طراحی واکنش‌گرا</b><small>از موبایل تا دسکتاپ</small></div></div>
           <div class="floating-note note-bottom" data-parallax-layer data-depth="1.7"><span>↗</span><div><b>مسیر روشن پروژه</b><small>از شناخت تا اجرا</small></div></div>
@@ -123,8 +123,8 @@
   </main>
 
   <footer class="site-footer">
-    <div class="container footer-main"><a class="brand footer-brand" href="#top"><img src="assets/ara-logo.png" alt=""><span><b>ARA</b><small>STUDIO</small></span></a><div><p>طراحی هویت و تجربه‌های دیجیتال با تمرکز بر وضوح، انسجام و عملکرد.</p><a href="#consultation">درخواست مشاوره <span>←</span></a></div><nav aria-label="پیوندهای پایین صفحه"><a href="#services">خدمات</a><a href="#difference">چرا ARA؟</a><a href="#work">نمونه‌کارها</a><a href="#process">مسیر همکاری</a></nav></div>
-    <div class="container footer-bottom"><span>© <span data-year></span> ARA Studio</span><span>اطلاعات تماس رسمی پس از تأیید مجموعه افزوده می‌شود.</span><a href="#top">بازگشت به بالا ↑</a></div>
+    <div class="container footer-main"><a class="brand footer-brand" href="#top" aria-label="<?= e($siteSettings['brand_name']) ?>"><img src="assets/ara-logo.png" alt=""><span><b>ARA</b><small>STUDIO</small></span></a><div><p>طراحی هویت و تجربه‌های دیجیتال با تمرکز بر وضوح، انسجام و عملکرد.</p><a href="#consultation">درخواست مشاوره <span>←</span></a></div><nav aria-label="پیوندهای پایین صفحه"><a href="#services">خدمات</a><a href="#difference">چرا ARA؟</a><a href="#work">نمونه‌کارها</a><a href="#process">مسیر همکاری</a></nav></div>
+    <div class="container footer-bottom"><span>© <span data-year></span> <?= e($siteSettings['brand_name']) ?></span><div class="footer-contact"><a href="<?= e($siteSettings['website_url']) ?>"><?= e($siteWebsiteHost) ?></a><a href="mailto:<?= e($siteSettings['contact_email']) ?>"><?= e($siteSettings['contact_email']) ?></a><a href="<?= e($siteSettings['telegram_url']) ?>" target="_blank" rel="noopener noreferrer">Telegram</a><?php if ($siteTelephoneHref !== null): ?><a href="<?= e($siteTelephoneHref) ?>"><bdi><?= e($siteSettings['contact_phone']) ?></bdi></a><?php endif; ?></div><a href="#top">بازگشت به بالا ↑</a></div>
   </footer>
 </body>
 </html>

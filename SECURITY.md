@@ -1,6 +1,6 @@
 # Security Policy and Backend Baseline
 
-ARA Studio exposes a public landing page with published portfolio records, a same-origin consultation endpoint, Phase 3 administrator authentication, Phase 4A consultation management, and the Phase 4B portfolio manager. It includes no public request viewer, role system, notification integration, SEO editor, settings editor, or general-purpose CMS.
+ARA Studio exposes a public landing page with published portfolio records and allow-listed contact settings, a same-origin consultation endpoint, administrator authentication, consultation management, portfolio management, and protected equal-permission administrator lifecycle controls. It includes no public request viewer, role system, notification integration, SEO editor, arbitrary settings editor, or general-purpose CMS.
 
 ## Reporting a Vulnerability
 
@@ -58,6 +58,10 @@ Origin and Referer are checked against `APP_URL` when present, but the CSRF toke
 Every Phase 4A dashboard route repeats that access check and sends private `no-store` responses. Search uses fixed SQL structure and prepared values; status values come from a server-side allow list; pagination is bounded; and request identifiers must be positive integers. Stored contact details, messages, and administrator notes are escaped before HTML rendering. Status changes, notes, and permanent deletion are POST-only, same-origin checked, and CSRF protected. Deletion also requires an explicit confirmation field.
 
 Phase 4B portfolio routes use the same controls. Public queries include only `is_published = 1` and use fixed ordering. Project text is escaped for HTML, Telegram URLs are restricted to HTTPS `t.me` post paths and revalidated before public rendering, and database image paths must match the random CMS filename pattern. Draft records are not returned by the public query.
+
+Phase 4C account and settings mutations are POST-only, same-origin checked, CSRF protected, bounded, and use prepared statements. Sensitive account changes require the acting administrator's current password. A transaction and row locks prevent concurrent requests from disabling the last active administrator; self-deactivation is prohibited. Password and activation-state changes increment `session_version`; its keyed credential fingerprint invalidates all affected sessions, including across deactivate/reactivate cycles. Password hashes are never sent to views or logs.
+
+Site setting names are a code-level allow list; the UI cannot create keys. Public URLs must use HTTPS, Telegram is restricted to a valid `t.me` profile path, and email/optional phone values are format and length checked. Values are escaped for HTML and validated again before public rendering. The settings table contains public presentation data only and must never be used for credentials or executable configuration.
 
 ## Portfolio Upload Safety
 
@@ -123,9 +127,9 @@ Before every cPanel upload:
 3. Confirm that all private directories and `.env` remain outside the web root.
 4. Search tracked and packaged files for real credentials and private keys.
 5. Run PHP syntax checks on every PHP file.
-6. Import migrations manually through phpMyAdmin in numeric order and verify the Phase 4A fields plus the Phase 4B portfolio table, indexes, and constraints before opening the dashboard.
+6. Import migrations manually through phpMyAdmin in numeric order and verify the consultation fields, portfolio table, and allow-listed `site_settings` table, indexes, and constraints before opening the dashboard.
 7. Run the CLI database check only with an approved test or production configuration.
 8. Verify generic API failure behavior and writable private log, lock, and rate-limit directories.
-9. Verify admin HTTPS enforcement, generic login failures, login rate limits, session expiration, logout CSRF, denial of unauthenticated access, escaped stored content, bounded pagination, allow-listed filters, mutation CSRF, image type/size/dimension rejection, draft exclusion, safe replacement/deletion, and destructive confirmations.
+9. Verify admin HTTPS enforcement, generic login failures, login rate limits, session expiration, logout CSRF, denial of unauthenticated access, self/last-active protections, password session invalidation, settings validation, escaped stored content, bounded pagination, allow-listed filters, mutation CSRF, image type/size/dimension rejection, draft exclusion, safe replacement/deletion, and destructive confirmations.
 10. Confirm no provisioning or rotation JSON remains on the server.
 11. Review the rendered desktop/mobile site and its existing interactions for regressions.
