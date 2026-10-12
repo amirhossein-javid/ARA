@@ -47,6 +47,9 @@ storage/locks/*
 !storage/locks/.gitkeep
 storage/provision/*
 !storage/provision/.gitkeep
+public/assets/portfolio/uploads/*
+!public/assets/portfolio/uploads/.gitkeep
+!public/assets/portfolio/uploads/.htaccess
 /logs/
 cache/
 .cache/

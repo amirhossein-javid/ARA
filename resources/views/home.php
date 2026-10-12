@@ -9,7 +9,6 @@
   <link rel="icon" href="assets/ara-logo.png" type="image/png">
   <link rel="preload" href="assets/fonts/Vazirmatn-wght.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="assets/styles.css">
-  <script src="assets/portfolio-data.js" defer></script>
   <script src="assets/app.js" defer></script>
 </head>
 <body>
@@ -78,10 +77,32 @@
 
     <section class="section portfolio" id="work" aria-labelledby="work-title">
       <div class="container">
-        <div class="portfolio-heading reveal"><p class="kicker">نمایش ساختار پروژه‌ها</p><h2 id="work-title">نمونه‌کارها</h2><p>پروژه‌های زیر صرفاً نمونه‌های آزمایشی برای ارزیابی طراحی کارت‌ها هستند و به مشتری یا همکاری واقعی اشاره ندارند.</p></div>
-        <div class="portfolio-note reveal"><span>۶ نمونه آزمایشی</span><p>تصاویر و لینک‌های رسمی بعداً از فایل داده مرکزی جایگزین می‌شوند.</p></div>
-        <div class="portfolio-grid" data-portfolio-grid aria-live="polite"></div>
-        <noscript><p class="portfolio-empty">برای نمایش نمونه‌کارها، جاوااسکریپت مرورگر باید فعال باشد.</p></noscript>
+        <div class="portfolio-heading reveal"><p class="kicker">منتخب پروژه‌ها</p><h2 id="work-title">نمونه‌کارها</h2><p><?= $portfolioIsTemporary ? 'این شش کارت صرفاً نمونه‌های آزمایشی هستند و به مشتری یا همکاری واقعی اشاره ندارند.' : 'مروری بر پروژه‌هایی که برای نمایش عمومی انتخاب شده‌اند.' ?></p></div>
+        <?php if ($portfolioIsTemporary): ?><div class="portfolio-note reveal"><span>۶ نمونه آزمایشی</span><p>این محتوا موقت است و با ثبت اولین پروژه واقعی در پنل مدیریت کنار می‌رود.</p></div><?php endif; ?>
+        <div class="portfolio-grid" data-portfolio-grid aria-live="polite">
+          <?php if ($portfolioProjects === []): ?><p class="portfolio-empty reveal">در حال حاضر نمونه‌کاری برای نمایش عمومی منتشر نشده است.</p><?php endif; ?>
+          <?php foreach ($portfolioProjects as $project): ?>
+            <?php $isPlaceholder = (bool) ($project['is_placeholder'] ?? false); ?>
+            <article class="project-card reveal">
+              <div class="project-shot">
+                <?php if (is_string($project['image_path'] ?? null) && $project['image_path'] !== ''): ?>
+                  <img src="/<?= e($project['image_path']) ?>" alt="پیش‌نمایش <?= e((string) $project['title']) ?>" loading="lazy" decoding="async">
+                <?php else: ?>
+                  <div class="project-image-placeholder" aria-hidden="true"><span>ARA</span></div>
+                <?php endif; ?>
+                <?php if ($isPlaceholder): ?><span class="placeholder-label">نمونه آزمایشی طراحی</span><?php endif; ?>
+              </div>
+              <div class="project-info">
+                <span class="project-category"><?= e((string) ($project['label'] ?? 'پروژه ARA')) ?></span>
+                <h3><?= e((string) $project['title']) ?></h3>
+                <p><?= nl2br(e((string) $project['short_description'])) ?></p>
+                <?php if (is_string($project['telegram_url'] ?? null) && $project['telegram_url'] !== ''): ?>
+                  <a class="project-link" href="<?= e($project['telegram_url']) ?>" target="_blank" rel="noopener noreferrer">مشاهده بیشتر <span aria-hidden="true">←</span></a>
+                <?php endif; ?>
+              </div>
+            </article>
+          <?php endforeach; ?>
+        </div>
       </div>
     </section>
 

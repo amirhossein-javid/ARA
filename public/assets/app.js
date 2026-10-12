@@ -1,7 +1,6 @@
 const header = document.querySelector('[data-header]');
 const menuButton = document.querySelector('[data-menu-toggle]');
 const nav = document.querySelector('[data-nav]');
-const portfolioGrid = document.querySelector('[data-portfolio-grid]');
 const reduceMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 const closeMenu = () => {
@@ -27,80 +26,6 @@ document.addEventListener('keydown', event => {
 });
 
 window.matchMedia('(min-width: 1024px)').addEventListener?.('change', event => event.matches && closeMenu());
-
-const isTelegramUrl = value => {
-  try {
-    const url = new URL(value);
-    return url.protocol === 'https:' &&
-      url.hostname === 't.me' &&
-      !url.username &&
-      !url.password &&
-      !url.port &&
-      url.pathname.length > 1;
-  } catch {
-    return false;
-  }
-};
-
-const createPortfolioCard = project => {
-  const card = document.createElement('article');
-  card.className = 'project-card reveal';
-  card.dataset.category = project.category;
-  card.dataset.projectId = project.id;
-
-  const media = document.createElement('div');
-  media.className = 'project-shot';
-  const image = document.createElement('img');
-  image.src = project.screenshot;
-  image.alt = project.screenshotAlt;
-  image.loading = 'lazy';
-  image.decoding = 'async';
-  media.append(image);
-
-  if (project.status === 'placeholder') {
-    const label = document.createElement('span');
-    label.className = 'placeholder-label';
-    label.textContent = 'نمونه آزمایشی طراحی';
-    media.append(label);
-  }
-
-  const info = document.createElement('div');
-  info.className = 'project-info';
-  const category = document.createElement('span');
-  category.className = 'project-category';
-  category.textContent = project.categoryLabel;
-  const title = document.createElement('h3');
-  title.textContent = project.title;
-  const description = document.createElement('p');
-  description.textContent = project.description;
-  info.append(category, title, description);
-
-  const hasTelegramUrl = isTelegramUrl(project.telegramUrl);
-  const action = hasTelegramUrl ? document.createElement('a') : document.createElement('span');
-  action.className = hasTelegramUrl ? 'project-link' : 'project-link is-disabled';
-  action.textContent = hasTelegramUrl ? 'مشاهده کامل در تلگرام ←' : 'مشاهده کامل در تلگرام — به‌زودی';
-  if (action instanceof HTMLAnchorElement) {
-    action.href = project.telegramUrl;
-    action.target = '_blank';
-    action.rel = 'noopener noreferrer';
-    action.setAttribute('aria-label', `مشاهده کامل ${project.title} در تلگرام`);
-  } else {
-    action.setAttribute('aria-disabled', 'true');
-  }
-  info.append(action);
-  card.append(media, info);
-  return card;
-};
-
-const portfolioItems = Array.isArray(window.ARA_PORTFOLIO) ? window.ARA_PORTFOLIO : [];
-const renderPortfolio = () => {
-  if (!portfolioGrid) return;
-  const fragment = document.createDocumentFragment();
-  portfolioItems.forEach(item => fragment.append(createPortfolioCard(item)));
-  portfolioGrid.replaceChildren(fragment);
-};
-
-renderPortfolio();
 
 const revealItems = [...document.querySelectorAll('.reveal')];
 if ('IntersectionObserver' in window && !reduceMotionQuery.matches) {

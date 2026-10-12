@@ -1,6 +1,6 @@
 # Security Policy and Backend Baseline
 
-ARA Studio exposes a public landing page, a same-origin consultation endpoint, Phase 3 administrator authentication, and the Phase 4A private consultation dashboard. It includes no public request viewer, role system, notification integration, portfolio manager, SEO editor, settings editor, or CMS.
+ARA Studio exposes a public landing page with published portfolio records, a same-origin consultation endpoint, Phase 3 administrator authentication, Phase 4A consultation management, and the Phase 4B portfolio manager. It includes no public request viewer, role system, notification integration, SEO editor, settings editor, or general-purpose CMS.
 
 ## Reporting a Vulnerability
 
@@ -57,6 +57,19 @@ Origin and Referer are checked against `APP_URL` when present, but the CSRF toke
 
 Every Phase 4A dashboard route repeats that access check and sends private `no-store` responses. Search uses fixed SQL structure and prepared values; status values come from a server-side allow list; pagination is bounded; and request identifiers must be positive integers. Stored contact details, messages, and administrator notes are escaped before HTML rendering. Status changes, notes, and permanent deletion are POST-only, same-origin checked, and CSRF protected. Deletion also requires an explicit confirmation field.
 
+Phase 4B portfolio routes use the same controls. Public queries include only `is_published = 1` and use fixed ordering. Project text is escaped for HTML, Telegram URLs are restricted to HTTPS `t.me` post paths and revalidated before public rendering, and database image paths must match the random CMS filename pattern. Draft records are not returned by the public query.
+
+## Portfolio Upload Safety
+
+- Accept only JPEG, PNG, and WebP images whose `getimagesize()` type and `fileinfo` MIME agree.
+- Enforce the configured 5 MiB file limit, 6000-pixel width/height limits, and 24-million-pixel limit before moving a file.
+- Generate a 128-bit random filename and ignore the client filename and extension.
+- Store only a relative path in MySQL; resolve filesystem paths from the known public root.
+- Delete only paths matching `assets/portfolio/uploads/<32 lowercase hex>.(jpg|png|webp)` and confirm their resolved path remains inside the upload directory.
+- Keep upload-directory Apache rules in place so executable extensions are denied and PHP handlers are removed.
+- On a database failure, remove a newly stored image. After successful replacement or deletion, clean the prior managed image; an unremovable file may remain as a safe orphan rather than risking arbitrary deletion.
+- Keep runtime images out of Git and deployment ZIP files. Back them up separately before cPanel file operations.
+
 ## Administrator Provisioning
 
 There is no public registration, setup, password-reset, or recovery endpoint. The two equal-permission accounts are created by a private CLI-only script using a temporary `0600` JSON file outside the web root. Provisioning refuses any non-empty `admins` table, requires exactly two distinct accounts, uses `password_hash(PASSWORD_DEFAULT)`, and deletes the temporary plaintext input after success.
@@ -110,9 +123,9 @@ Before every cPanel upload:
 3. Confirm that all private directories and `.env` remain outside the web root.
 4. Search tracked and packaged files for real credentials and private keys.
 5. Run PHP syntax checks on every PHP file.
-6. Import migrations manually through phpMyAdmin in numeric order and verify the Phase 4A columns, constraints, indexes, and foreign key before opening the dashboard.
+6. Import migrations manually through phpMyAdmin in numeric order and verify the Phase 4A fields plus the Phase 4B portfolio table, indexes, and constraints before opening the dashboard.
 7. Run the CLI database check only with an approved test or production configuration.
 8. Verify generic API failure behavior and writable private log, lock, and rate-limit directories.
-9. Verify admin HTTPS enforcement, generic login failures, login rate limits, session expiration, logout CSRF, denial of unauthenticated access, escaped stored content, bounded pagination, allow-listed filters, mutation CSRF, and deletion confirmation.
+9. Verify admin HTTPS enforcement, generic login failures, login rate limits, session expiration, logout CSRF, denial of unauthenticated access, escaped stored content, bounded pagination, allow-listed filters, mutation CSRF, image type/size/dimension rejection, draft exclusion, safe replacement/deletion, and destructive confirmations.
 10. Confirm no provisioning or rotation JSON remains on the server.
 11. Review the rendered desktop/mobile site and its existing interactions for regressions.

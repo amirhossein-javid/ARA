@@ -16,7 +16,7 @@
   <a class="nav-item<?= $activeNavigation === 'dashboard' ? ' is-active' : '' ?>" href="/admin"><span aria-hidden="true">⌂</span><b>داشبورد</b></a>
   <a class="nav-item<?= $activeNavigation === 'consultations' ? ' is-active' : '' ?>" href="/admin/consultations"><span aria-hidden="true">◫</span><b>درخواست‌های مشاوره</b></a>
   <div class="sidebar-divider"></div>
-  <span class="nav-item is-disabled" aria-disabled="true"><span aria-hidden="true">◇</span><b>نمونه‌کارها</b><small>فاز آینده</small></span>
+  <a class="nav-item<?= $activeNavigation === 'portfolio' ? ' is-active' : '' ?>" href="/admin/portfolio"><span aria-hidden="true">◇</span><b>نمونه‌کارها</b></a>
   <span class="nav-item is-disabled" aria-disabled="true"><span aria-hidden="true">♙</span><b>مدیران</b><small>فاز آینده</small></span>
   <span class="nav-item is-disabled" aria-disabled="true"><span aria-hidden="true">◎</span><b>سئو</b><small>فاز آینده</small></span>
   <span class="nav-item is-disabled" aria-disabled="true"><span aria-hidden="true">⚙</span><b>تنظیمات</b><small>فاز آینده</small></span>

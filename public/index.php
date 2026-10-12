@@ -4,7 +4,12 @@ declare(strict_types=1);
 
 use Ara\Http\Controllers\AdminAuthController;
 use Ara\Http\Controllers\AdminDashboardController;
+use Ara\Http\Controllers\AdminPortfolioController;
 use Ara\Http\Controllers\ConsultationController;
+use Ara\Database\Connection;
+use Ara\Portfolio\PortfolioRepository;
+use Ara\Portfolio\TemporaryPortfolio;
+use Ara\Portfolio\PortfolioValidator;
 use Ara\Security\Csrf;
 
 error_reporting(E_ALL);
@@ -37,7 +42,7 @@ if ($privatePath === null) {
     exit;
 }
 
-/** @var array{app: array<string, mixed>, database: array<string, mixed>, consultation: array<string, mixed>, auth: array<string, mixed>} $container */
+/** @var array{app: array<string, mixed>, database: array<string, mixed>, consultation: array<string, mixed>, auth: array<string, mixed>, portfolio: array<string, mixed>} $container */
 $container = require $privatePath . '/bootstrap/app.php';
 
 $requestPath = parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
@@ -66,6 +71,14 @@ if ($requestPath === '/admin' || str_starts_with($requestPath, '/admin/')) {
         $container['auth'],
         $privatePath
     );
+    $portfolioController = new AdminPortfolioController(
+        $container['app'],
+        $container['database'],
+        $container['auth'],
+        $container['portfolio'],
+        $privatePath,
+        __DIR__
+    );
     $requestMethod = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 
     if ($requestPath === '/admin/login' && $requestMethod === 'GET') {
@@ -86,6 +99,18 @@ if ($requestPath === '/admin' || str_starts_with($requestPath, '/admin/')) {
 
     if ($requestPath === '/admin/consultations' && $requestMethod === 'GET') {
         $dashboardController->consultations();
+    }
+
+    if ($requestPath === '/admin/portfolio' && $requestMethod === 'GET') {
+        $portfolioController->index();
+    }
+
+    if ($requestPath === '/admin/portfolio/create' && $requestMethod === 'GET') {
+        $portfolioController->createForm();
+    }
+
+    if ($requestPath === '/admin/portfolio/create' && $requestMethod === 'POST') {
+        $portfolioController->create();
     }
 
     $consultationRoute = [];
@@ -117,17 +142,52 @@ if ($requestPath === '/admin' || str_starts_with($requestPath, '/admin/')) {
         }
     }
 
+    $portfolioRoute = [];
+
+    if (preg_match('#^/admin/portfolio/([1-9][0-9]*)(?:/(update|publication|delete))?$#D', $requestPath, $portfolioRoute) === 1) {
+        $projectId = filter_var($portfolioRoute[1], FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 1, 'max_range' => PHP_INT_MAX],
+        ]);
+        $action = $portfolioRoute[2] ?? '';
+
+        if ($projectId !== false && $action === '' && $requestMethod === 'GET') {
+            $portfolioController->edit($projectId);
+        }
+
+        if ($projectId !== false && $action === 'update' && $requestMethod === 'POST') {
+            $portfolioController->update($projectId);
+        }
+
+        if ($projectId !== false && $action === 'publication' && $requestMethod === 'POST') {
+            $portfolioController->setPublication($projectId);
+        }
+
+        if ($projectId !== false && $action === 'delete' && $requestMethod === 'POST') {
+            $portfolioController->delete($projectId);
+        }
+
+        if ($projectId !== false) {
+            $portfolioController->methodNotAllowed($action === '' ? ['GET'] : ['POST']);
+        }
+    }
+
     $allowedMethods = match ($requestPath) {
         '/admin/login' => ['GET', 'POST'],
         '/admin/logout' => ['POST'],
         '/admin' => ['GET'],
         '/admin/consultations' => ['GET'],
+        '/admin/portfolio' => ['GET'],
+        '/admin/portfolio/create' => ['GET', 'POST'],
         default => [],
     };
 
     if ($allowedMethods !== []) {
         if (in_array($requestPath, ['/admin/login', '/admin/logout'], true)) {
             $authController->methodNotAllowed($allowedMethods);
+        }
+
+        if (str_starts_with($requestPath, '/admin/portfolio')) {
+            $portfolioController->methodNotAllowed($allowedMethods);
         }
 
         $dashboardController->methodNotAllowed($allowedMethods);
@@ -152,6 +212,35 @@ if (!in_array(strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')), ['GET'
 }
 
 $csrfToken = Csrf::token();
+$publicPortfolio = new PortfolioRepository(Connection::make($container['database']));
+$portfolioIsTemporary = !$publicPortfolio->hasAny();
+$portfolioProjects = $portfolioIsTemporary ? [] : $publicPortfolio->published();
+
+if ($portfolioIsTemporary) {
+    $portfolioProjects = TemporaryPortfolio::projects();
+} else {
+    $telegramValidator = new PortfolioValidator();
+
+    foreach ($portfolioProjects as &$portfolioProject) {
+        $telegramUrl = $portfolioProject['telegram_url'] ?? null;
+
+        if (!is_string($telegramUrl) || !$telegramValidator->isTelegramPostUrl($telegramUrl)) {
+            $portfolioProject['telegram_url'] = null;
+        }
+
+        $imagePath = $portfolioProject['image_path'] ?? null;
+
+        if (
+            !is_string($imagePath)
+            || preg_match('#^assets/portfolio/uploads/[a-f0-9]{32}\.(?:jpg|png|webp)$#D', $imagePath) !== 1
+        ) {
+            $portfolioProject['image_path'] = null;
+        }
+    }
+
+    unset($portfolioProject);
+}
+
 header('Cache-Control: no-store');
 
 require $privatePath . '/resources/views/home.php';
