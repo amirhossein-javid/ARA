@@ -4,7 +4,7 @@ ARA Studio exposes a public landing page with published portfolio records, allow
 
 ## Reporting a Vulnerability
 
-Do not include credentials, personal data, private logs, or working exploit payloads in a public issue. Use a private, verified reporting channel selected by the project owner before the repository becomes public.
+Report suspected vulnerabilities privately to [info@ara-studio.ir](mailto:info@ara-studio.ir). Do not disclose credentials, personal data, private logs, exploit payloads, or other sensitive security details in public GitHub issues.
 
 ## Public and Private Boundaries
 
