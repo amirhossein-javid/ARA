@@ -1,14 +1,14 @@
 # ARA Studio
 
-**A consultation-led Persian digital studio website with a secure, lightweight administration system.**
+**The production website and administration system for ARA Studio, a Persian digital design and development studio.**
 
-[Official website](https://ara-studio.ir) · [Security](SECURITY.md) · [Deployment](DEPLOYMENT.md) · [Agent guidelines](AGENTS.md)
+[Live website](https://ara-studio.ir) · [Security](SECURITY.md) · [Deployment](DEPLOYMENT.md) · [Agent guidelines](AGENTS.md)
 
 ARA Studio presents web design, e-commerce, landing page, visual identity, UI/UX, and custom digital solution services through a responsive Persian RTL experience. The repository also contains the native PHP administration system used to receive consultation requests, manage portfolio content, maintain administrator accounts, update public contact information, and control homepage SEO.
 
-The studio services described by the public website are business offerings. The CMS, API, authentication, and operational tooling described below are software capabilities implemented in this repository. No client history, pricing, testimonials, performance guarantees, or business statistics are implied.
+The studio services described by the public website are business offerings. The CMS, API, authentication, and operational tooling described below are implemented in this repository. No client history, pricing, testimonials, performance guarantees, or business statistics are implied.
 
-> **Status:** the implementation has completed focused static and packaging review. It has not yet been validated end-to-end on the target PHP/MySQL/cPanel runtime. See [Testing and project status](#testing-and-project-status).
+> **Production status:** ARA Studio is publicly deployed at [ara-studio.ir](https://ara-studio.ir). Deployment status is distinct from verification scope: contributors must report which checks they actually ran for a change and must not infer unperformed runtime, database, browser, or security test results.
 
 ## Contents
 
@@ -20,7 +20,7 @@ The studio services described by the public website are business offerings. The 
 - [Database migrations](#database-migrations)
 - [Security](#security)
 - [Installation overview](#installation-overview)
-- [Testing and project status](#testing-and-project-status)
+- [Production and verification](#production-and-verification)
 - [Maintenance and documentation](#maintenance-and-documentation)
 - [Contact](#contact)
 
@@ -32,7 +32,7 @@ The studio services described by the public website are business offerings. The 
 - Consultation-oriented service presentation without fixed pricing.
 - Accessible mobile navigation, restrained motion, and reduced-motion support.
 - Consultation form with Persian loading, success, and error feedback.
-- Public portfolio populated exclusively from published database records, with a production-ready empty state when none are available.
+- Public portfolio populated exclusively from published database records, with a dedicated empty state when none are available.
 - Database-backed brand and contact information.
 - Dynamic homepage metadata, Organization JSON-LD, `robots.txt`, and `sitemap.xml`.
 
@@ -110,7 +110,7 @@ In production, `public/` maps to `public_html/`. All other application directori
 
 ### Public website and consultation system
 
-The public site presents ARA Studio's verified service categories, working principles, consultation process, and portfolio in Persian. JavaScript enhances navigation, one-time reveal effects, lightweight parallax, and the consultation form while respecting `prefers-reduced-motion`.
+The public site presents ARA Studio's service categories, working principles, consultation process, and portfolio in Persian. JavaScript enhances navigation, one-time reveal effects, lightweight parallax, and the consultation form while respecting `prefers-reduced-motion`.
 
 The form submits an exact JSON shape to `POST /api/consultation`. Server-side processing enforces an 8 KiB limit, field and format validation, an empty honeypot, CSRF, same-origin checks, a keyed file-backed rate limit, and a ten-minute duplicate window. A successful HTTP `201` is returned only after PDO persistence. Unexpected errors remain generic and are recorded privately without the request body.
 
@@ -222,19 +222,14 @@ Prerequisites:
 - Apache `mod_rewrite` and recommended `mod_headers`;
 - `file_uploads=On`, `upload_max_filesize>=5M`, and `post_max_size>=6M` for managed images.
 
-For a local environment:
+For a local environment that matches production routing:
 
 1. Copy `.env.example` to `.env` and replace every placeholder with private local values.
 2. Set `APP_ENV=local`, an accurate local `APP_URL`, and a private `APP_KEY` of at least 32 characters.
 3. Create a database and import migrations `0000` through `0007` in order.
 4. Make `storage/logs`, `storage/locks`, `storage/rate-limits`, and both public upload directories writable by PHP.
-5. Start PHP from the public document root:
-
-   ```bash
-   php -S 127.0.0.1:8080 -t public
-   ```
-
-6. Verify real PDO connectivity:
+5. Configure Apache with `public/` as the document root, `mod_rewrite` enabled, and `.htaccess` overrides allowed. Keep the application directories outside that document root.
+6. Verify real PDO connectivity from the repository root:
 
    ```bash
    php bin/database-check.php
@@ -244,11 +239,11 @@ Administrator provisioning is private and CLI-only. `bin/provision-admins.php` a
 
 For shared cPanel, do not upload the repository root to `public_html`. Use the supported two-root archive, create `.env` only in the private directory, preserve runtime uploads, apply migrations manually, and follow [DEPLOYMENT.md](DEPLOYMENT.md) for fresh installation, updates, permissions, provisioning, rollback, and smoke tests. Never place real credentials in Git or a deployment archive.
 
-## Testing and project status
+## Production and verification
 
-The current codebase has undergone focused static review for routing, validation, prepared SQL, output escaping, authentication boundaries, CSRF, session invalidation, upload path safety, migration order, and deployment-package contents. The public portfolio no longer contains temporary sample projects and shows only published CMS records. JavaScript syntax and repository whitespace checks have also been run successfully during the latest review cycle.
+The website is deployed publicly at [ara-studio.ir](https://ara-studio.ir). That established deployment fact does not prove that every commit in this repository is currently deployed, nor does it imply that every feature has been independently audited or retested after each change.
 
-PHP CLI and MySQL/MariaDB were unavailable in the review environment. Consequently, PHP syntax execution, real PDO connectivity, migration execution, Apache behavior, browser flows, consultation persistence, and cPanel permissions have **not** been verified on the target runtime. The repository is a staging candidate, not a production-tested release. Production approval requires every applicable smoke test in [DEPLOYMENT.md](DEPLOYMENT.md) to pass on the actual hosting environment.
+Verification is change-specific. Reports should distinguish source inspection, static checks, PHP syntax checks, database-backed tests, browser tests, packaging checks, and target-host smoke tests. Record only checks that actually ran and state any unavailable environment or remaining production verification. The authoritative cPanel update, rollback, and smoke-test procedure is maintained in [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Maintenance and documentation
 

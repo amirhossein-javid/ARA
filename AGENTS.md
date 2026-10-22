@@ -4,9 +4,9 @@ These instructions apply to the entire repository. Read the relevant source file
 
 ## Project context
 
-ARA Studio is a Persian RTL digital agency website and administration system. The public experience presents corporate websites, online stores, landing pages, branding and visual identity, UI/UX, and custom digital solutions through a consultation-led flow. The application stores consultation requests and provides authenticated management for consultations, portfolio projects, administrator accounts, public site settings, and homepage SEO.
+ARA Studio is a real, publicly deployed Persian RTL digital agency website and administration system, available at `https://ara-studio.ir`. The public experience presents corporate websites, online stores, landing pages, branding and visual identity, UI/UX, and custom digital solutions through a consultation-led flow. The application stores consultation requests and provides authenticated management for consultations, portfolio projects, administrator accounts, public site settings, and homepage SEO.
 
-The current implementation is a staging candidate. It has received focused static review but has not been verified end-to-end on the target PHP/MySQL/cPanel runtime. Never describe it as production-tested without new runtime evidence.
+Treat the live deployment, the repository working tree, and the verification performed for a specific change as separate facts. Do not describe the project as unpublished or as a staging candidate. Do not assume that the current branch is deployed, that production matches the working tree, or that a runtime/security check passed unless there is direct evidence for that claim.
 
 Technology and hosting constraints:
 
@@ -111,6 +111,14 @@ Runtime portfolio and SEO images, `.env`, logs, locks, rate-limit state, provisi
 8. Distinguish static inspection, syntax checks, simulated checks, real database tests, browser tests, and target-host verification.
 9. Report changed files, behavior, tests, unavailable verification, remaining risks, and deployment implications concisely.
 10. Ask before work that could alter production data, security boundaries, hosting architecture, external systems, or established product behavior.
+
+## Testing and evidence discipline
+
+- Match verification to the change and use the existing environment before proposing new tooling.
+- Report exact commands or checks that ran successfully; do not convert source review into a runtime claim.
+- A failed or unavailable local check is a limitation of that verification session, not evidence that the deployed website is unavailable or non-production.
+- A successful production smoke test confirms only the exercised behavior on that deployment at that time; it is not a security certification or a guarantee for later changes.
+- For deployment work, record the backup boundary, changed destination paths, migration requirement, smoke-test results, and rollback point.
 
 ## Non-negotiable constraints
 

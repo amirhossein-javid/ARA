@@ -32,7 +32,7 @@ Do not use permission `777`. A suitable starting point on typical cPanel hosting
 
 Hosting ownership models differ. Tighten permissions where possible while confirming that PHP can write only the four runtime directories listed above.
 
-## 2. Verified Package Layout
+## 2. Supported Package Layout
 
 Extract `ara-studio-cpanel.zip` in the cPanel account home directory, not inside `public_html`. The archive has exactly these top-level directories:
 
@@ -120,8 +120,8 @@ Rollback means restoring the pre-deployment database export and the matching upl
 ## 5. Updating an Existing Deployment
 
 1. Record the current code version and take verified database and upload backups.
-2. Inspect the existing schema and determine the exact unapplied migrations. For a complete Phase 4C installation, only `0007_create_seo_settings.sql` is expected; do not assume this without checking.
-3. Import unapplied migrations before switching to code that requires them. Existing older code ignores the new Phase 5 tables/columns.
+2. Inspect the existing schema and determine the exact unapplied migrations. Do not infer migration state from the files present on the server.
+3. Import unapplied migrations before switching to code that requires them.
 4. Extract the new archive into a temporary account-home directory and inspect it before copying files.
 5. Update `/home/ACCOUNT/ara-studio` while preserving the existing `.env`, logs, locks, rate-limit state, and `storage/provision` contents.
 6. Update public assets and `.htaccess`, then replace `public_html/index.php` last to keep the mixed-version interval short.
@@ -191,7 +191,7 @@ Run with test-only content that can be removed afterward. Record HTTP status, ex
 | Consultation | Submit one valid form, then inspect `consultation_requests`. | UI shows Persian success only after HTTP 201; exactly one matching row exists with status `new`. | Preserve entered data; inspect private log by reference ID and DB/storage permissions. |
 | Consultation abuse | Resubmit the same payload and submit malformed/oversized requests. | Duplicate returns 409; invalid input/content type/size returns the documented 4xx; no SQL detail leaks. | Disable public form traffic until validation and limits are corrected. |
 | Admin auth | Try a wrong password, then valid login and logout. | Error is generic; valid login regenerates session and reaches `/admin`; logout is POST and protected page redirects to login. | Check HTTPS, `APP_URL`, cookie attributes, CSRF, DB and rate-limit directory. |
-| Session lifecycle | Leave a staging session idle for the configured 30 minutes; rotate its password from the other admin. | Idle session expires; password change invalidates the affected existing session on its next request. | Do not launch admin access until server time, sessions and `session_version` are verified. |
+| Session lifecycle | In a controlled test session, leave the session idle for the configured 30 minutes; rotate its password from the other admin. | Idle session expires; password change invalidates the affected existing session on its next request. | Restrict administrator use until server time, sessions and `session_version` are verified. |
 | Consultations admin | Find the public test submission; update status and notes; delete only the test record. | Pagination/detail work; escaped content renders as text; timestamps/admin attribution update; confirmed deletion removes one row. | Restore only from backup if real data was affected; inspect CSRF and prepared-query path. |
 | Portfolio | Create a draft with valid JPEG/PNG/WebP, publish, reorder, replace image, unpublish and delete. | Draft is absent publicly; published item appears in stable order; Telegram CTA appears only for a valid link; old managed image is removed or remains only as a harmless orphan. | Unpublish the item; check `fileinfo`, PHP size limits, upload permissions and `.htaccess`. |
 | Upload rejection | Try wrong extension/content, over-limit size/dimensions and malformed image in staging. | Each is rejected; no database path and no executable file remains. | Disable uploads and inspect MIME/dimension validation and host limits. |
