@@ -22,6 +22,7 @@ The studio services described by the public website are business offerings. The 
 - [Installation overview](#installation-overview)
 - [Production and verification](#production-and-verification)
 - [Maintenance and documentation](#maintenance-and-documentation)
+- [License](#license)
 - [Contact](#contact)
 
 ## Capabilities
@@ -254,6 +255,14 @@ Documentation responsibilities:
 - [AGENTS.md](AGENTS.md) — mandatory workflow and conventions for developers and AI coding agents.
 - [SECURITY.md](SECURITY.md) — detailed security requirements and review checklist.
 - [DEPLOYMENT.md](DEPLOYMENT.md) — authoritative cPanel installation, update, rollback, and runtime test procedure.
+
+## License
+
+The original application source code is licensed under the [MIT License](LICENSE), copyright © 2026 Amirhossein Javid.
+
+The MIT License does not grant permission to use the ARA Studio name, logo, trademarks, visual identity, or other proprietary brand assets. This exclusion includes `public/assets/ara-logo.png` and does not imply any trademark registration claim.
+
+The bundled Vazirmatn font is third-party software distributed under the SIL Open Font License 1.1. Its copyright notice and independent license terms are preserved in [`public/assets/fonts/OFL.txt`](public/assets/fonts/OFL.txt).
 
 ## Contact
 
